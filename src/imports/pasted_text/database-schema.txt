@@ -1,0 +1,124 @@
+-- ── EMPLEADOS ─────────────────────────────────────────────
+CREATE TABLE empleados (
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_id            UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    nombre             VARCHAR(40)  NOT NULL,
+    email              VARCHAR(40)  NOT NULL UNIQUE,
+    rol                VARCHAR(15)  NOT NULL CHECK (rol IN ('Vendedor','Gerente','Administrador')),
+    fecha_contratacion DATE,
+    activo             BOOLEAN      DEFAULT TRUE,
+    created_at         TIMESTAMPTZ  DEFAULT NOW()
+);
+
+-- ── PRODUCTOS / SERVICIOS ─────────────────────────────────
+CREATE TABLE productos_servicios (
+    id              SERIAL PRIMARY KEY,
+    nombre_servicio VARCHAR(30) NOT NULL UNIQUE
+);
+
+-- ── PROSPECTOS ────────────────────────────────────────────
+CREATE TABLE prospectos (
+    id                   SERIAL PRIMARY KEY,
+    nombre_empresa       VARCHAR(40)  NOT NULL,
+    nombre_contacto      VARCHAR(40)  NOT NULL,
+    cargo_contacto       VARCHAR(20),
+    telefono             VARCHAR(15),
+    email_contacto       VARCHAR(40),
+    pagina_web           VARCHAR(255),
+    domicilio            TEXT,
+    estado               VARCHAR(10)  NOT NULL DEFAULT 'Prospecto'
+                             CHECK (estado IN ('Prospecto','Cliente','Baja')),
+    id_empleado_registro UUID         REFERENCES empleados(id) ON DELETE SET NULL,
+    fecha_registro       TIMESTAMPTZ  DEFAULT NOW()
+);
+
+-- ── PAQUETES / TARIFAS ────────────────────────────────────
+CREATE TABLE paquetes_tarifas (
+    id               SERIAL PRIMARY KEY,
+    id_servicio      INT            NOT NULL REFERENCES productos_servicios(id),
+    pln              VARCHAR(20)    NOT NULL,
+    descripcion      TEXT,
+    medidas_ejemplos VARCHAR(60),
+    tarifa_sin_iva   DECIMAL(10,2)  NOT NULL
+);
+
+-- ── CONTRATOS ─────────────────────────────────────────────
+CREATE TABLE contratos (
+    id                        SERIAL PRIMARY KEY,
+    id_prospecto              INT           NOT NULL REFERENCES prospectos(id),
+    id_empleado_responsable   UUID          NOT NULL REFERENCES empleados(id),
+    fecha_contrato            DATE          NOT NULL,
+    fecha_inicio_publicacion  DATE,
+    fecha_fin_publicacion     DATE,
+    observaciones             TEXT,
+    sub_total                 DECIMAL(10,2),
+    iva_monto                 DECIMAL(10,2),
+    total                     DECIMAL(10,2) NOT NULL,
+    estado                    VARCHAR(10)   NOT NULL DEFAULT 'Firmado'
+                                  CHECK (estado IN ('Firmado','Vigente','Terminado','Cancelado')),
+    created_at                TIMESTAMPTZ   DEFAULT NOW()
+);
+
+-- ── DETALLES DE CONTRATO ──────────────────────────────────
+CREATE TABLE contrato_detalles (
+    id               SERIAL PRIMARY KEY,
+    id_contrato      INT            NOT NULL REFERENCES contratos(id) ON DELETE CASCADE,
+    id_paquete       INT            NOT NULL REFERENCES paquetes_tarifas(id),
+    cantidad         INT            NOT NULL,
+    precio_unitario  DECIMAL(10,2)  NOT NULL,
+    importe          DECIMAL(10,2)  NOT NULL
+);
+
+-- ── AGENDA / EVENTOS ──────────────────────────────────────
+CREATE TABLE agenda_eventos (
+    id            SERIAL PRIMARY KEY,
+    id_empleado   UUID         NOT NULL REFERENCES empleados(id),
+    id_prospecto  INT          REFERENCES prospectos(id) ON DELETE SET NULL,
+    titulo        VARCHAR(100) NOT NULL,
+    descripcion   TEXT,
+    fecha         DATE         NOT NULL,
+    hora_inicio   TIME,
+    hora_fin      TIME,
+    tipo          VARCHAR(20)  NOT NULL DEFAULT 'Otro'
+                      CHECK (tipo IN ('Llamada','Visita','Reunion','Seguimiento','Otro')),
+    color         VARCHAR(7)   DEFAULT '#008a52',
+    completado    BOOLEAN      DEFAULT FALSE,
+    created_at    TIMESTAMPTZ  DEFAULT NOW()
+);
+
+-- ── SEGUIMIENTO A CLIENTE ─────────────────────────────────
+CREATE TABLE seguimiento (
+    id               SERIAL PRIMARY KEY,
+    id_prospecto     INT          NOT NULL REFERENCES prospectos(id),
+    id_empleado      UUID         NOT NULL REFERENCES empleados(id),
+    tipo_accion      VARCHAR(30)  NOT NULL,
+    descripcion      TEXT,
+    resultado        TEXT,
+    fecha_accion     TIMESTAMPTZ  DEFAULT NOW(),
+    proxima_accion   DATE,
+    created_at       TIMESTAMPTZ  DEFAULT NOW()
+);
+
+-- ── PENDIENTES ────────────────────────────────────────────
+CREATE TABLE pendientes (
+    id            SERIAL PRIMARY KEY,
+    id_empleado   UUID         NOT NULL REFERENCES empleados(id),
+    id_prospecto  INT          REFERENCES prospectos(id) ON DELETE SET NULL,
+    id_contrato   INT          REFERENCES contratos(id)  ON DELETE SET NULL,
+    titulo        VARCHAR(100) NOT NULL,
+    descripcion   TEXT,
+    prioridad     VARCHAR(5)   NOT NULL DEFAULT 'Media'
+                      CHECK (prioridad IN ('Alta','Media','Baja')),
+    completado    BOOLEAN      DEFAULT FALSE,
+    fecha_limite  DATE,
+    created_at    TIMESTAMPTZ  DEFAULT NOW()
+);
+
+-- ── LOG DE ACTIVIDAD ──────────────────────────────────────
+CREATE TABLE actividad_log (
+    id              BIGSERIAL    PRIMARY KEY,
+    id_empleado     UUID         NOT NULL REFERENCES empleados(id),
+    tipo_actividad  VARCHAR(20)  NOT NULL,
+    descripcion     TEXT,
+    fecha_hora      TIMESTAMPTZ  DEFAULT NOW()
+);

@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+Paaji+2:wght@400;500;600;700&family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&family=Londrina+Solid&display=swap');
+
+@font-face {
+  font-family: 'Londrina Solid:Regular';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Londrina Solid'), local('LondrinaSolid-Regular');
+}
+
+@font-face {
+  font-family: 'Lilita One:Regular';
+  font-style: normal;
+  font-weight: 400;
+  src: url('https://static.figma.com/font/LilitaOne-Regular_1') format('woff2');
+}
+
+@font-face {
+  font-family: 'Baloo Paaji:Regular';
+  font-style: normal;
+  font-weight: 400;
+  src: url('https://static.figma.com/font/BalooPaaji-Regular_2') format('woff2');
+}
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Oswald', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+
+  --color-primary: #1f7a38;
+  --color-primary-dark: #165c2a;
+  --color-primary-light: #2e9d4a;
+  --color-cream: #f0ede5;
+  --color-cream-dark: #e4e0d6;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-sans);
+}

@@ -1,0 +1,11 @@
+{
+  "title": "El Diario",
+  "description": "A robust, multi-layered system implementing El Diario de Coahuila's existing business processes with a user-friendly login interface for secure access.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

@@ -230,7 +230,17 @@ function generarContrato() {
 }
 
 function cancelar() {
-  router.push({ name: "PublicidadImpresa" })
+  const servicioActual = tarifa.value.servicio?.toLowerCase() || ""
+
+  if (servicioActual.includes("clasificado")) {
+    router.push({ name: "TarifaPeriodico", params: { servicio: "clasificados" } })
+  } else if (servicioActual.includes("evento")) {
+    router.push({ name: "TarifaPeriodico", params: { servicio: "eventos" } })
+  } else if (servicioActual.includes("digital") || servicioActual.includes("banner")) {
+    router.push({ name: "TarifaPeriodico", params: { servicio: "digital" } })
+  } else {
+    router.push({ name: "TarifaPeriodico", params: { servicio: "impresos" } })
+  }
 }
 
 function salir() {

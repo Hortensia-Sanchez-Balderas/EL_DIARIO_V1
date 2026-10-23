@@ -29,7 +29,33 @@
             <img :src="`${base}assets/7422c.png`" alt="cerrar" style="width:22px;height:22px;object-fit:contain;" />
           </button>
 
-          <div class="tp-tabla-wrap">
+          <!-- Controles de Administrador -->
+          <div v-if="esAdministrador" class="tp-admin-controls" style="position: absolute; top: 15px; left: 90px; display: flex; gap: 10px; align-items: center; z-index: 4;">
+            <button 
+              @click="modoEdicion = !modoEdicion" 
+              class="tp-admin-btn" style="background: #008a52; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+              {{ modoEdicion ? 'Cancelar Edición' : 'Modificar Paquetes' }}
+            </button>
+            <button 
+              v-if="modoEdicion" 
+              @click="guardarCambios" 
+              class="tp-admin-btn" style="background: #28a745; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+              Guardar Cambios
+            </button>
+            <!-- Nuevo Botón para Agregar -->
+            <button 
+              @click="agregarNuevoPaqueteFila" 
+              class="tp-admin-btn" style="background: #0059ff; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+              + Agregar Paquete
+            </button>
+            <span style="color: #000; font-weight: bold; font-size: 13px;">{{ mensajeEstado }}</span>
+          </div>
+
+          <div v-if="cargando" style="text-align: center; padding: 40px; font-weight: bold; font-size: 16px; color: #333;">
+            Cargando paquetes...
+          </div>
+
+          <div v-else class="tp-tabla-wrap" :style="esAdministrador ? 'margin-top: 50px;' : 'margin-top: 45px;'">
             <table class="tp-tabla">
 
               <!-- Eventos Sociales: Tipo | Descripción | Tarifa | Aceptar -->
@@ -40,16 +66,27 @@
                     <th class="tp-th">Tipo De Servicio</th>
                     <th class="tp-th">Descripción</th>
                     <th class="tp-th">Tarifa (Sin IVA)</th>
-                    <th class="tp-th">Aceptar</th>
+                    <th class="tp-th">Acción</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="t in servicio.tarifas" :key="t.tipo" class="tp-tr">
-                    <td class="tp-td">{{ t.tipo }}</td>
-                    <td class="tp-td">{{ t.descripcion }}</td>
-                    <td class="tp-td">{{ t.precio }}</td>
+                  <tr v-for="t in servicio.tarifas" :key="t.id || t.tipo" class="tp-tr">
+                    <!-- Tipo de servicio editable -->
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.tipo" class="tp-input-edit" />
+                      <span v-else>{{ t.tipo }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.descripcion" class="tp-input-edit" />
+                      <span v-else>{{ t.descripcion }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.precio" class="tp-input-edit" />
+                      <span v-else>{{ t.precio }}</span>
+                    </td>
                     <td class="tp-td tp-td-btn">
-                      <button class="tp-aceptar-btn" @click="seleccionar(t, t.precio!)">Aceptar</button>
+                      <button v-if="!modoEdicion" class="tp-aceptar-btn" @click="seleccionar(t, t.precio!)">Aceptar</button>
+                      <span v-else style="font-size: 11px; color: #666; font-weight: bold;">Editando</span>
                     </td>
                   </tr>
                 </tbody>
@@ -65,18 +102,73 @@
                     <th class="tp-th">Tarifa Diaria (Sin IVA)</th>
                     <th class="tp-th">Tarifa 15 Dias (Sin IVA)</th>
                     <th class="tp-th">Tarifa 30 Dias (Sin IVA)</th>
-                    <th class="tp-th">Aceptar</th>
+                    <th class="tp-th">Acción</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="t in servicio.tarifas" :key="t.tipo" class="tp-tr">
-                    <td class="tp-td">{{ t.tipo }}</td>
-                    <td class="tp-td">{{ t.descripcion }}</td>
-                    <td class="tp-td">{{ t.precio }}</td>
-                    <td class="tp-td">{{ t.precio15 }}</td>
-                    <td class="tp-td">{{ t.precio30 }}</td>
+                  <tr v-for="t in servicio.tarifas" :key="t.id || t.tipo" class="tp-tr">
+                    <!-- Tipo de servicio editable -->
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.tipo" class="tp-input-edit" />
+                      <span v-else>{{ t.tipo }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.descripcion" class="tp-input-edit" />
+                      <span v-else>{{ t.descripcion }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.precio" class="tp-input-edit" />
+                      <span v-else>{{ t.precio }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.precio15" class="tp-input-edit" />
+                      <span v-else>{{ t.precio15 }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.precio30" class="tp-input-edit" />
+                      <span v-else>{{ t.precio30 }}</span>
+                    </td>
                     <td class="tp-td tp-td-btn">
-                      <button class="tp-aceptar-btn" @click="seleccionar(t, t.precio!)">Aceptar</button>
+                      <button v-if="!modoEdicion" class="tp-aceptar-btn" @click="seleccionar(t, t.precio!)">Aceptar</button>
+                      <span v-else style="font-size: 11px; color: #666; font-weight: bold;">Editando</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </template>
+
+              <!-- Publicidad Impresa: Tipo | Desc | Medidas | Tarifa | Acción -->
+              <template v-else-if="servicioId === 'impresos'">
+                <colgroup><col style="width:20%"/><col style="width:30%"/><col style="width:20%"/><col style="width:18%"/><col style="width:12%"/></colgroup>
+                <thead>
+                  <tr>
+                    <th class="tp-th">Tipo de servicio</th>
+                    <th class="tp-th">Descripción</th>
+                    <th class="tp-th">Medidas/Ejemplos</th>
+                    <th class="tp-th">Tarifa (Sin IVA)</th>
+                    <th class="tp-th">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="t in servicio.tarifas" :key="t.id || t.tipo" class="tp-tr">
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.tipo" class="tp-input-edit" />
+                      <span v-else>{{ t.tipo }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.descripcion" class="tp-input-edit" />
+                      <span v-else>{{ t.descripcion }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.medidas" class="tp-input-edit" />
+                      <span v-else>{{ t.medidas }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.precio" class="tp-input-edit" />
+                      <span v-else>{{ t.precio }}</span>
+                    </td>
+                    <td class="tp-td tp-td-btn">
+                      <button v-if="!modoEdicion" class="tp-aceptar-btn" @click="seleccionar(t, t.precio!)">Aceptar</button>
+                      <span v-else style="font-size: 11px; color: #666; font-weight: bold;">Editando</span>
                     </td>
                   </tr>
                 </tbody>
@@ -91,17 +183,31 @@
                     <th class="tp-th">Descripcion</th>
                     <th class="tp-th">Medidas/Ejemplos</th>
                     <th class="tp-th">Tarifa (Sin IVA)</th>
-                    <th class="tp-th">Aceptar</th>
+                    <th class="tp-th">Acción</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="t in servicio.tarifas" :key="t.tipo" class="tp-tr">
-                    <td class="tp-td">{{ t.tipo }}</td>
-                    <td class="tp-td">{{ t.descripcion }}</td>
-                    <td class="tp-td">{{ t.medidas }}</td>
-                    <td class="tp-td">{{ t.precio }}</td>
+                  <tr v-for="t in servicio.tarifas" :key="t.id || t.tipo" class="tp-tr">
+                    <!-- Tipo de servicio editable -->
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.tipo" class="tp-input-edit" />
+                      <span v-else>{{ t.tipo }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.descripcion" class="tp-input-edit" />
+                      <span v-else>{{ t.descripcion }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.medidas" class="tp-input-edit" />
+                      <span v-else>{{ t.medidas }}</span>
+                    </td>
+                    <td class="tp-td">
+                      <input v-if="modoEdicion" v-model="t.precio" class="tp-input-edit" />
+                      <span v-else>{{ t.precio }}</span>
+                    </td>
                     <td class="tp-td tp-td-btn">
-                      <button class="tp-aceptar-btn" @click="seleccionar(t, t.precio!)">Aceptar</button>
+                      <button v-if="!modoEdicion" class="tp-aceptar-btn" @click="seleccionar(t, t.precio!)">Aceptar</button>
+                      <span v-else style="font-size: 11px; color: #666; font-weight: bold;">Editando</span>
                     </td>
                   </tr>
                 </tbody>
@@ -122,10 +228,13 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue"
 import { useRouter, useRoute } from "vue-router"
+import { supabase } from "@/lib/supabase"
+import { useAuthStore } from "@/stores/auth"
 
 const router = useRouter()
 const route  = useRoute()
 const base   = import.meta.env.BASE_URL
+const authStore = useAuthStore()
 
 interface Tarifa {
   id?: number
@@ -142,34 +251,46 @@ interface Catalogo {
   tarifas: Tarifa[]
 }
 
+// Variables de control
+const esAdministrador = ref(false)
+const modoEdicion = ref(false)
+const mensajeEstado = ref("")
+const cargando = ref(true)
+
 const fallbackCatalogo: Record<string, Catalogo> = {
   eventos: {
     label: "Eventos Sociales",
     tarifas: [
-      { tipo: "Plana.",      descripcion: "Celebraciones como bodas, aniversarios, graduaciones.", precio: "$9,086.00" },
-      { tipo: "1/2 Plana.",  descripcion: "Versión reducida para eventos sociales.",                precio: "$4,543.00" },
-      { tipo: "1/4 Plana.",  descripcion: "Formato económico para mensajes breves.",                precio: "$2,272.00" },
+      { tipo: "Plana.",      descripcion: "Celebraciones como bodas, aniversarios, graduaciones.", precio: "9086.00" },
+      { tipo: "1/2 Plana.",  descripcion: "Versión reducida para eventos sociales.",               precio: "4543.00" },
+      { tipo: "1/4 Plana.",  descripcion: "Formato económico para mensajes breves.",               precio: "2272.00" },
     ],
   },
   clasificados: {
     label: "Clasificados",
     tarifas: [
-      { tipo: "Clasificado Simple.",  descripcion: "Texto 5x1",  precio: "$88.00",  precio15: "$513.00",   precio30: "$955.50"  },
-      { tipo: "Clasificado Medio.",   descripcion: "Texto 10x1", precio: "$164.00", precio15: "$1,010.00", precio30: "$1,856.00" },
-      { tipo: "Clasificado Amplio.",  descripcion: "Texto 15x1", precio: "$240.00", precio15: "$1,508.00", precio30: "$2,796.00" },
-      { tipo: "Clasificado Doble.",   descripcion: "Texto 10x2", precio: "$317.00", precio15: "$2,010.00", precio30: "$3,724.00" },
-      { tipo: "Clasificado Triple.",  descripcion: "Texto 15x3", precio: "$699.00", precio15: "$4,499.50", precio30: "$8,364.00" },
+      { tipo: "Clasificado Simple.",  descripcion: "Texto 5x1",  precio: "88.00",  precio15: "513.00",    precio30: "955.50"  },
+      { tipo: "Clasificado Medio.",   descripcion: "Texto 10x1", precio: "164.00", precio15: "1010.00", precio30: "1856.00" },
+      { tipo: "Clasificado Amplio.",  descripcion: "Texto 15x1", precio: "240.00", precio15: "1508.00", precio30: "2796.00" },
+      { tipo: "Clasificado Doble.",   descripcion: "Texto 10x2", precio: "317.00", precio15: "2010.00", precio30: "3724.00" },
+      { tipo: "Clasificado Triple.",  descripcion: "Texto 15x3", precio: "699.00", precio15: "4499.50", precio30: "8364.00" },
     ],
   },
   digital: {
     label: "Publicidad digital (banners)",
     tarifas: [
-      { tipo: "Top Banner (Leaderboard).", descripcion: "Banner superior.",              medidas: "1107 × 207 px.", precio: "$754.00" },
-      { tipo: "Medio Banner.",             descripcion: "Rectángulo medio.",             medidas: "708 × 166 px.",  precio: "$481.00" },
-      { tipo: "Full Banner.",              descripcion: "Medio vertical (Halfpage).",    medidas: "300 × 600 px.",  precio: "$441.00" },
-      { tipo: "Box Banner.",               descripcion: "Cuadrado cuadrado.",            medidas: "250 × 250 px.",  precio: "$285.00" },
-      { tipo: "Banner.",                   descripcion: "Cuadrado pequeño.",             medidas: "250 × 250 px.",  precio: "$250.00" },
-      { tipo: "Banner GIF.",               descripcion: "Animado vertical.",             medidas: "300 × 553 px.",  precio: "$250.00" },
+      { tipo: "Top Banner (Leaderboard).", descripcion: "Banner superior.",             medidas: "1107 × 207 px.", precio: "754.00" },
+      { tipo: "Medio Banner.",              descripcion: "Rectángulo medio.",            medidas: "708 × 166 px.",  precio: "481.00" },
+      { tipo: "Full Banner.",               descripcion: "Medio vertical (Halfpage).",   medidas: "300 × 600 px.",  precio: "441.00" },
+      { tipo: "Box Banner.",                descripcion: "Cuadrado cuadrado.",           medidas: "250 × 250 px.",  precio: "285.00" },
+      { tipo: "Banner.",                    descripcion: "Cuadrado pequeño.",            medidas: "250 × 250 px.",  precio: "250.00" },
+      { tipo: "Banner GIF.",                descripcion: "Animado vertical.",            medidas: "300 × 553 px.",  precio: "250.00" },
+    ],
+  },
+  impresos: {
+    label: "Publicidad Impresa",
+    tarifas: [
+      { tipo: "Plana Completa.", descripcion: "Anuncio impreso en plana entera.", medidas: "34 x 52 cm.", precio: "5000.00" },
     ],
   },
 }
@@ -178,6 +299,7 @@ const nombreServicioMap: Record<string, { label: string; busqueda: string }> = {
   eventos:      { label: "Eventos Sociales",            busqueda: "Eventos" },
   clasificados: { label: "Clasificados",                busqueda: "Clasificados" },
   digital:      { label: "Publicidad digital (banners)", busqueda: "Digital" },
+  impresos:     { label: "Publicidad Impresa",          busqueda: "Impresos" },
 }
 
 const servicioId = computed(() => (route.params.servicio as string) || "digital")
@@ -189,37 +311,142 @@ const servicio = computed(() =>
     : fallbackCatalogo[servicioId.value] ?? fallbackCatalogo["digital"]!
 )
 
-onMounted(async () => {
-  const sid  = servicioId.value
-  const meta = nombreServicioMap[sid]
-  if (!meta) return
-  servicioActual.value.label = meta.label
+const servicioIdMap: Record<string, number> = {
+  eventos:      1, // Eventos Sociales
+  digital:      2, // Publicidad Digital
+  clasificados: 3, // Clasificados
+  impresos:     4, // Publicidad Impresa
+}
+
+// 1. Cargar tarifas filtrando exactamente por el id_servicio de la ruta actual
+async function cargarTarifas() {
+  cargando.value = true // 👈 Iniciamos carga
+  const sid = servicioId.value
+  const idServicioTarget = servicioIdMap[sid] || 4
+
   try {
-    const { paqueteService } = await import("@/services/paqueteService")
-    const rows = await paqueteService.listarPorNombreServicio(meta.busqueda)
-    if (rows.length > 0) {
+    const { data: rows, error } = await supabase
+      .from("paquetes_tarifas")
+      .select("*")
+      .eq("id_servicio", idServicioTarget)
+
+    if (error) throw error
+
+    if (rows && rows.length > 0) {
+      if (sid === 'eventos') servicioActual.value.label = "Eventos Sociales"
+      else if (sid === 'clasificados') servicioActual.value.label = "Clasificados"
+      else if (sid === 'digital') servicioActual.value.label = "Publicidad digital (banners)"
+      else if (sid === 'impresos') servicioActual.value.label = "Publicidad Impresa"
+
       servicioActual.value.tarifas = rows.map((r: any) => ({
         id:          r.id,
-        tipo:        r.pln ?? "",
+        tipo:        r.tipo_servicio || "Servicio Impreso", 
         descripcion: r.descripcion ?? "",
         medidas:     r.medidas_ejemplos ?? "",
-        precio:      r.tarifa_sin_iva != null
-          ? `$${Number(r.tarifa_sin_iva).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`
-          : "",
-        precio15: r.tarifa_15_dias != null
-          ? `$${Number(r.tarifa_15_dias).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`
-          : undefined,
-        precio30: r.tarifa_30_dias != null
-          ? `$${Number(r.tarifa_30_dias).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`
-          : undefined,
+        precio:      r.tarifa_sin_iva != null ? `$${Number(r.tarifa_sin_iva).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : "",
+        precio15:    r.tarifa_15_dias != null ? `$${Number(r.tarifa_15_dias).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : undefined,
+        precio30:    r.tarifa_30_dias != null ? `$${Number(r.tarifa_30_dias).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : undefined,
       }))
+    } else {
+      servicioActual.value = fallbackCatalogo[sid] ?? fallbackCatalogo["impresos"]!
     }
   } catch (e) {
-    console.error("Error cargando tarifas periódico:", e)
+    console.error("Error cargando tarifas filtradas:", e)
+    servicioActual.value = fallbackCatalogo[sid] ?? fallbackCatalogo["impresos"]!
+  } finally {
+    cargando.value = false // 👈 2. Finalizamos la carga (tanto si tuvo éxito como si dio error)
   }
+}
+
+// 2. Función para verificar si el usuario es Administrador o Gerente
+async function verificarRolAdministrador() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      esAdministrador.value = false
+      return
+    }
+
+    const { data: perfil } = await supabase
+      .from("empleados")
+      .select("rol")
+      .eq("auth_id", user.id)
+      .single()
+
+    if (perfil) {
+      const rolLower = perfil.rol?.toLowerCase() || ""
+      
+      // Solo habilita los botones si el rol es administrador o gerente
+      if (rolLower === "administrador" || rolLower === "admin" || rolLower === "gerente") {
+        esAdministrador.value = true
+      } else {
+        esAdministrador.value = false // 👈 Vendedor / Vendedora / Ejecutivo
+      }
+    } else {
+      esAdministrador.value = false
+    }
+  } catch (e) {
+    console.error("No se pudo verificar el rol del usuario:", e)
+    esAdministrador.value = false
+  }
+}
+
+// 3. Función para guardar los datos modificados en 'paquetes_tarifas'
+async function guardarCambios() {
+  try {
+    mensajeEstado.value = "Guardando cambios..."
+
+    const limpiarPrecio = (val?: string | number) => {
+      if (val === undefined || val === null || val === "") return null
+      const num = Number(String(val).replace(/[^0-9.-]+/g, ""))
+      return isNaN(num) ? null : num
+    }
+
+    for (const t of servicio.value.tarifas) {
+      if (!t.id) {
+        console.warn("Elemento sin ID de BD, no se puede guardar:", t.tipo)
+        continue
+      }
+
+      const precioLimpio   = limpiarPrecio(t.precio)
+      const precio15Limpio = limpiarPrecio(t.precio15)
+      const precio30Limpio = limpiarPrecio(t.precio30)
+
+      const { error } = await supabase
+        .from("paquetes_tarifas")
+        .update({
+          tipo_servicio: t.tipo, // <-- ¡Importante para guardar los cambios en el nombre del tipo de servicio!
+          tarifa_sin_iva: precioLimpio,
+          tarifa_15_dias: precio15Limpio,
+          tarifa_30_dias: precio30Limpio,
+          descripcion: t.descripcion,
+          medidas_ejemplos: t.medidas,
+        })
+        .eq("id", t.id)
+
+      if (error) throw error
+    }
+
+    mensajeEstado.value = "¡Guardado con éxito!"
+    modoEdicion.value = false
+
+    await cargarTarifas()
+
+    setTimeout(() => { mensajeEstado.value = "" }, 3000)
+
+  } catch (error: any) {
+    console.error("Error al guardar en Supabase:", error)
+    mensajeEstado.value = "Error al guardar: " + (error.message || "Error desconocido")
+  }
+}
+
+onMounted(async () => {
+  await verificarRolAdministrador()
+  await cargarTarifas()
 })
 
 function seleccionar(tarifa: Tarifa, precioSeleccionado: string) {
+  if (modoEdicion.value) return
   router.push({
     name: "NuevaSolicitudRegistro",
     state: {
@@ -238,6 +465,51 @@ function seleccionar(tarifa: Tarifa, precioSeleccionado: string) {
 function regresar() {
   router.push({ name: "Periodico" })
 }
+
+// 4. Agregar nuevo paquete asignándole el id_servicio de la vista actual
+async function agregarNuevoPaqueteFila() {
+  try {
+    mensajeEstado.value = "Agregando paquete..."
+
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError || !session) {
+      throw new Error("No hay una sesión activa. Inicia sesión nuevamente como administrador.")
+    }
+
+    // Obtenemos el id_servicio correspondiente a la vista actual
+    const sid = servicioId.value
+    const idServicioActual = servicioIdMap[sid] || 1
+
+    // Generamos un identificador PLN único para periódico (PLN-P)
+    const randomNum = Math.floor(100 + Math.random() * 900)
+    const plnGenerado = `PLN-P${randomNum}`
+
+    const { data, error } = await supabase
+      .from("paquetes_tarifas")
+      .insert([
+        {
+          id_servicio: idServicioActual, // 1, 2, 3 o 4 según corresponda
+          pln: plnGenerado,              // Código PLN de periódico (ej. PLN-P482)
+          tipo_servicio: "Nuevo Servicio",
+          descripcion: "Descripción del paquete",
+          medidas_ejemplos: "N/A",
+          tarifa_sin_iva: 0.00
+        }
+      ])
+      .select()
+
+    if (error) throw error
+
+    mensajeEstado.value = "¡Paquete agregado con éxito!"
+    await cargarTarifas()
+
+    setTimeout(() => { mensajeEstado.value = "" }, 3000)
+  } catch (error: any) {
+    console.error("Error al agregar paquete:", error)
+    mensajeEstado.value = "Error al agregar: " + (error.message || "revisa la consola")
+  }
+}
+
 </script>
 
 <style scoped>
@@ -383,4 +655,16 @@ function regresar() {
   .tp-th { font-size: 12px; padding: 6px 6px; }
   .tp-td { font-size: 11px; padding: 6px 6px; }
 }
+
+.tp-input-edit {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: inherit;
+  border: 1px solid #008a52;
+  border-radius: 4px;
+  background: #fff;
+}
 </style>
+

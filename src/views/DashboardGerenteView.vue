@@ -39,10 +39,25 @@
             <span class="modulo-label">Gestión de personal</span>
           </button>
 
+          <!-- Paquetes de Periódico (Agregado para Administrador) -->
+          <button class="modulo-btn" style="background:linear-gradient(180deg,#fa8c3c 0%,#ef4743 100%);" @click="irPeriodico">
+            <div class="modulo-icon-wrap">
+              <img :src="`${base}assets/ba78e.png`" alt="Paquetes de Periódico" class="modulo-icon" style="width:93px;height:93px;" />
+            </div>
+            <span class="modulo-label">Paquetes de Periódico</span>
+          </button>
+
+          <!-- Paquetes de Radio (Agregado para Administrador) -->
+          <button class="modulo-btn" style="background:linear-gradient(180deg,#0059ff 0%,#003699 100%);" @click="irRadio">
+            <div class="modulo-icon-wrap">
+              <img :src="`${base}assets/b777b.png`" alt="Paquetes de Radio" class="modulo-icon" style="width:93px;height:93px;" />
+            </div>
+            <span class="modulo-label">Paquetes de Radio</span>
+          </button>
+
           <!-- Registros -->
           <button class="modulo-btn" style="background:linear-gradient(180deg,#7cc91a 0%,#1ba547 100%);" @click="irRegistros">
             <div class="modulo-icon-wrap">
-              <!-- Ilustración de portapapeles (misma del diseño original) -->
               <div class="clipboard-icon">
                 <div class="clip-back" />
                 <div class="clip-paper" />
@@ -126,6 +141,10 @@ onUnmounted(() => { document.removeEventListener("click", closeMenu) })
 function salir() { router.push({ name: "Login" }) }
 function irRegistros() { router.push({ name: "RegistrosGerente" }) }
 function irGestion() { router.push({ name: "GestionPersonal" }) }
+
+// Funciones de navegación hacia los paquetes
+function irPeriodico() { router.push({ name: "Periodico" }) }
+function irRadio() { router.push({ name: "Radio" }) }
 </script>
 
 <style scoped>
@@ -220,12 +239,12 @@ function irGestion() { router.push({ name: "GestionPersonal" }) }
 
 .modulos-grid {
   display: grid;
-  grid-template-columns: repeat(3, 331px);
+  grid-template-columns: repeat(3, 260px);
   gap: 16px;
 }
 
 .modulo-btn {
-  height: 165px;
+  height: 140px;
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -265,8 +284,8 @@ function irGestion() { router.push({ name: "GestionPersonal" }) }
 /* ── Clipboard illustration ── */
 .clipboard-icon {
   position: relative;
-  width: 95px;
-  height: 118px;
+  width: 80px;
+  height: 95px;
 }
 
 .clip-back {
@@ -339,7 +358,7 @@ function irGestion() { router.push({ name: "GestionPersonal" }) }
 @media (max-width: 1279px) {
   .dash-body    { padding: 10px 24px 12px; }
   .modulos-grid { grid-template-columns: repeat(3, 1fr); width: 100%; }
-  .modulo-btn   { width: 100%; height: auto; min-height: 130px; }
+  .modulo-btn   { width: 100%; height: auto; min-height: 120px; }
 }
 
 @media (max-width: 640px) {

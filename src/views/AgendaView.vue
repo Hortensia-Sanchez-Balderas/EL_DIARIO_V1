@@ -193,7 +193,41 @@
                     />
                   </div>
                 </div>
+                
+                <!-- Horario -->
+              <div class="ag-form-field">
+                <label class="ag-form-label" for="hora-inicio">Hora de inicio</label>
+                <input
+                  id="hora-inicio"
+                  v-model="nuevoEvento.hora_inicio"
+                  type="time"
+                  class="ag-form-input"
+                  required
+                  @click="($event.target as HTMLInputElement).showPicker()"
+                />
+              </div>    
+            <div class="ag-form-field">
+              <label class="ag-form-label" for="hora-Fin">Hora de fin</label>
+              <input
+                id="hora-inicio"
+                v-model="nuevoEvento.hora_fin"
+                type="time"
+                class="ag-form-input"
+                required
+                @click="($event.target as HTMLInputElement).showPicker()"
+              />
+            </div>
 
+                <!-- Recordatorio -->
+                <div class="ag-form-field">
+                  <label class="ag-form-label">
+                    <input
+                      v-model="nuevoEvento.recordatorio"
+                      type="checkbox"
+                    />
+                    Recordarme 10 minutos antes
+                  </label>
+                </div>
                 <div class="ag-modal-actions">
                   <button class="ag-agregar-btn ag-btn-back" @click="pasoAgregar = 1">← Volver</button>
                   <button
@@ -491,6 +525,8 @@ interface AgendaEvento {
   titulo: string
   descripcion: string
   color: string
+  hora_inicio: string | null
+  hora_fin: string | null
 }
 
 const eventos = ref<AgendaEvento[]>([])
@@ -501,13 +537,15 @@ onMounted(async () => {
   try {
     const { agendaService } = await import("@/services/agendaService")
     const data = await agendaService.listarPorEmpleado(empleadoId)
-    eventos.value = data.map((e: any) => ({
+    eventos.value = data.map((e) => ({
       id: e.id,
       date: e.fecha,
       tipo: tipoBDaTipoUI(e.tipo),
       titulo: e.titulo,
       descripcion: e.descripcion ?? "",
-      color: e.color ?? "#aaa",
+      color: e.color,
+      hora_inicio: e.hora_inicio ?? null,
+      hora_fin: e.hora_fin ?? null,
     }))
   } catch (err) {
     console.error("Error cargando agenda:", err)
@@ -572,7 +610,14 @@ const showAgregar      = ref(false)
 const pasoAgregar      = ref(1)
 const diaSeleccionado  = ref(hoy.getDate())
 const tipoSeleccionado = ref<"cita" | "reunion" | "otro" | "">("")
-const nuevoEvento      = ref({ titulo: "", descripcion: "", color: "#ee68c1" })
+const nuevoEvento = ref({
+  titulo: "",
+  descripcion: "",
+  color: "#ee68c1",
+  hora_inicio: "09:00",
+  hora_fin: "",
+  recordatorio: true,
+})
 
 const DIAS_NOMBRE = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"]
 const diaNombreSeleccionado = computed(() => {
@@ -594,7 +639,14 @@ const formularioLleno = computed(() => {
 function abrirAgregar() {
   pasoAgregar.value      = 1
   tipoSeleccionado.value = ""
-  nuevoEvento.value      = { titulo: "", descripcion: "", color: "#ee68c1" }
+nuevoEvento.value = {
+  titulo: "",
+  descripcion: "",
+  color: "#ee68c1",
+  hora_inicio: "09:00",
+  hora_fin: "",
+  recordatorio: true,
+}
   showAgregar.value      = true
 }
 function abrirDiaAgregar(dia: number) {
@@ -602,33 +654,51 @@ function abrirDiaAgregar(dia: number) {
   abrirAgregar()
 }
 
+
 async function guardarEvento() {
   const titulo = tipoSeleccionado.value === "otro"
     ? nuevoEvento.value.titulo.trim()
     : nombreAutoEvento.value
+
   if (!titulo) return
+
   const empleadoId = authStore.empleado?.id
-  if (!empleadoId) { showAgregar.value = false; return }
+  if (!empleadoId) {
+    showAgregar.value = false
+    return
+  }
 
   const fecha = fechaKey(diaSeleccionado.value)
+
   try {
     const { agendaService } = await import("@/services/agendaService")
+
     const saved = await agendaService.crear({
-      id_empleado:  empleadoId,
+      id_empleado: empleadoId,
       id_prospecto: null,
       titulo,
-      descripcion:  nuevoEvento.value.descripcion || null,
+      descripcion: nuevoEvento.value.descripcion || null,
       fecha,
-      hora_inicio:  null,
-      hora_fin:     null,
-      tipo:         tipoUIaTipoBD(tipoSeleccionado.value as TipoUI),
-      color:        nuevoEvento.value.color || colorPorTipo(tipoSeleccionado.value),
-      completado:   false,
+      hora_inicio: nuevoEvento.value.hora_inicio || null,
+      hora_fin: nuevoEvento.value.hora_fin || null,
+      tipo: tipoUIaTipoBD(tipoSeleccionado.value as TipoUI),
+      color: nuevoEvento.value.color || colorPorTipo(tipoSeleccionado.value),
+      completado: false,
+      recordatorio_activo: nuevoEvento.value.recordatorio,
+      recordatorio_minutos: 10,
+      recordatorio_disparado: false,
+      recordatorio_atendido: false,
     })
+
     eventos.value = [...eventos.value, {
-      id: saved.id, date: saved.fecha,
-      tipo: tipoBDaTipoUI(saved.tipo), titulo: saved.titulo,
-      descripcion: saved.descripcion ?? "", color: saved.color,
+      id: saved.id,
+      date: saved.fecha,
+      tipo: tipoBDaTipoUI(saved.tipo),
+      titulo: saved.titulo,
+      descripcion: saved.descripcion ?? "",
+      color: saved.color,
+      hora_inicio: saved.hora_inicio ?? null,
+      hora_fin: saved.hora_fin ?? null,
     }]
   } catch (err) {
     console.error("Error guardando evento:", err)
@@ -937,25 +1007,97 @@ function regresar() { router.push({ name: "Dashboard" }) }
 .ag-lista-arrow-img-up { transform: rotate(-90deg); }
 
 /* ── Modal Agregar ───────────────────────────────────────────── */
-.ag-modal-agregar { width: 860px; max-width: 96vw; }
-.ag-modal-body { display: flex; gap: 0; min-height: 280px; }
+.ag-modal-agregar {
+  width: 860px;
+  max-width: 96vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ag-modal-body {
+  display: flex;
+  gap: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
 .ag-modal-fecha {
-  width: 152px; flex-shrink: 0; background: #fff;
+  width: 152px;
+  flex-shrink: 0;
+  background: #fff;
   border-radius: 5px 0 0 5px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 16px; border-right: 2px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-right: 2px solid #ddd;
+  box-sizing: border-box;
 }
+
 .ag-modal-fecha-dia {
-  font-family: 'Lilita One:Regular', 'Lilita One', sans-serif; font-size: 22px; color: #615d5d; margin: 0 0 6px;
+  font-family: 'Lilita One:Regular', 'Lilita One', sans-serif;
+  font-size: 22px;
+  color: #615d5d;
+  margin: 0 0 6px;
 }
+
 .ag-modal-fecha-num {
-  font-family: 'Lilita One:Regular', 'Lilita One', sans-serif; font-size: 48px; color: #615d5d; margin: 0 0 4px; line-height: 1;
+  font-family: 'Lilita One:Regular', 'Lilita One', sans-serif;
+  font-size: 48px;
+  color: #615d5d;
+  margin: 0 0 4px;
+  line-height: 1;
 }
+
 .ag-modal-fecha-mes {
-  font-family: 'Lilita One:Regular', 'Lilita One', sans-serif; font-size: 16px; color: #615d5d; margin: 0; text-align: center;
+  font-family: 'Lilita One:Regular', 'Lilita One', sans-serif;
+  font-size: 16px;
+  color: #615d5d;
+  margin: 0;
+  text-align: center;
 }
+
 .ag-modal-contenido {
-  flex: 1; background: #fff; border-radius: 0 5px 5px 0; padding: 20px 24px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: #fff;
+  border-radius: 0 5px 5px 0;
+  padding: 20px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .ag-modal-agregar {
+    width: 96vw;
+    max-width: 96vw;
+    max-height: 92vh;
+  }
+
+  .ag-modal-body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .ag-modal-fecha {
+    width: 100%;
+    flex-shrink: 0;
+    padding: 12px;
+    border-right: none;
+    border-bottom: 2px solid #ddd;
+    border-radius: 5px 5px 0 0;
+  }
+
+  .ag-modal-contenido {
+    overflow: visible;
+    padding: 16px;
+  }
 }
 
 /* ── Tipos ───────────────────────────────────────────────────── */

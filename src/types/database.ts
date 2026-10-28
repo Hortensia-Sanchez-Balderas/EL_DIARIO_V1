@@ -74,18 +74,23 @@ export interface ContratoDetalle {
   importe: number
 }
 
+
 export interface AgendaEvento {
   id: number
-  id_empleado: string              // UUID
+  id_empleado: string
   id_prospecto: number | null
   titulo: string
   descripcion: string | null
-  fecha: string                    // DATE "YYYY-MM-DD"
-  hora_inicio: string | null       // TIME "HH:MM:SS"
+  fecha: string
+  hora_inicio: string | null
   hora_fin: string | null
   tipo: TipoEvento
-  color: string                    // hex "#008a52"
+  color: string
   completado: boolean
+  recordatorio_activo: boolean
+  recordatorio_minutos: number
+  recordatorio_disparado: boolean
+  recordatorio_atendido: boolean
   created_at: string
 }
 
@@ -178,10 +183,12 @@ export interface Database {
         Update: Partial<Omit<ContratoDetalle, "id">>
       }
       agenda_eventos: {
-        Row: AgendaEvento
-        Insert: Omit<AgendaEvento, "id" | "created_at"> & { created_at?: string }
-        Update: Partial<Omit<AgendaEvento, "id">>
-      }
+  Row: AgendaEvento
+  Insert: Omit<AgendaEvento, "id" | "created_at"> & {
+    created_at?: string
+  }
+  Update: Partial<Omit<AgendaEvento, "id">>
+}
       seguimiento: {
         Row: Seguimiento
         Insert: Omit<Seguimiento, "id" | "created_at" | "fecha_accion"> & { created_at?: string; fecha_accion?: string }

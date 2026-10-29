@@ -12,7 +12,7 @@
             <div class="napoleon-avatar">
               <img :src="`${base}assets/0411c.png`" class="napoleon-avatar-img" alt="" />
             </div>
-            <span class="napoleon-name">Napoleon</span>
+            <span class="napoleon-name">{{ nombreUsuario }}</span>
             <svg viewBox="0 0 24 24" fill="white" width="20" height="20" style="flex-shrink:0">
               <path d="M7 10l5 5 5-5z"/>
             </svg>
@@ -90,40 +90,59 @@
   </div>
 </template>
 
+
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
 import AppHeader from "@/components/AppHeader.vue"
 import CorkBoard from "@/components/CorkBoard.vue"
+import { useAuthStore } from "@/stores/auth"
 
 const router = useRouter()
+const authStore = useAuthStore()
+
 const base = import.meta.env.BASE_URL
 const showMenu = ref(false)
 
+// Nombre del empleado que inició sesión
+const nombreUsuario = computed(
+  () => authStore.empleado?.nombre ?? "Usuario"
+)
+
 const loadingStats = ref(true)
+
 const stats = ref([
   { id: "prospectos", label: "Prospectos\nRegistrados", value: 0 },
-  { id: "contratos",  label: "Contratos\nFirmados",     value: 0 },
-  { id: "radio",      label: "Paquetes\nde Radio",      value: 0 },
-  { id: "periodico",  label: "Paquetes\nde Periódico",  value: 0 },
-  { id: "vendedores", label: "Vendedores\nActivos",     value: 0 },
-  { id: "ventas",     label: "Ventas\nTotales",         value: 0 },
+  { id: "contratos", label: "Contratos\nFirmados", value: 0 },
+  { id: "radio", label: "Paquetes\nde Radio", value: 0 },
+  { id: "periodico", label: "Paquetes\nde Periódico", value: 0 },
+  { id: "vendedores", label: "Vendedores\nActivos", value: 0 },
+  { id: "ventas", label: "Ventas\nTotales", value: 0 },
 ])
 
 const statsForBoard = computed(() =>
-  stats.value.map(s => ({ ...s, loading: loadingStats.value }))
+  stats.value.map(s => ({
+    ...s,
+    loading: loadingStats.value,
+  }))
 )
 
 function closeMenu(e: MouseEvent) {
   const target = e.target as HTMLElement
-  if (!target.closest("[data-napoleon]")) showMenu.value = false
+
+  if (!target.closest("[data-napoleon]")) {
+    showMenu.value = false
+  }
 }
 
 onMounted(async () => {
   document.addEventListener("click", closeMenu)
+
   try {
     const { dashboardService } = await import("@/services/dashboardService")
+
     const res = await dashboardService.registrosSemanaGerente()
+
     stats.value[0].value = res.prospectosRegistrados
     stats.value[1].value = res.contratos
     stats.value[2].value = res.paquetesRadio
@@ -136,15 +155,38 @@ onMounted(async () => {
     loadingStats.value = false
   }
 })
-onUnmounted(() => { document.removeEventListener("click", closeMenu) })
 
-function salir() { router.push({ name: "Login" }) }
-function irRegistros() { router.push({ name: "RegistrosGerente" }) }
-function irGestion() { router.push({ name: "GestionPersonal" }) }
+onUnmounted(() => {
+  document.removeEventListener("click", closeMenu)
+})
 
-// Funciones de navegación hacia los paquetes
-function irPeriodico() { router.push({ name: "Periodico" }) }
-function irRadio() { router.push({ name: "Radio" }) }
+// Cerrar sesión de Supabase y regresar al Login
+async function salir() {
+  try {
+    await authStore.logout()
+    showMenu.value = false
+
+    await router.replace({ name: "Login" })
+  } catch (error) {
+    console.error("Error al cerrar sesión:", error)
+  }
+}
+
+function irRegistros() {
+  router.push({ name: "RegistrosGerente" })
+}
+
+function irGestion() {
+  router.push({ name: "GestionPersonal" })
+}
+
+function irPeriodico() {
+  router.push({ name: "Periodico" })
+}
+
+function irRadio() {
+  router.push({ name: "Radio" })
+}
 </script>
 
 <style scoped>

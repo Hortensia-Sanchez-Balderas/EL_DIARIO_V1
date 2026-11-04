@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router"
 import { supabase, supabaseConfigured } from "@/lib/supabase"
+import { useAuthStore } from "@/stores/auth"
 
 const router = createRouter({
   history: createWebHistory(),
@@ -41,12 +42,22 @@ const router = createRouter({
     { path: "/pendientes",       name: "Pendientes",     component: () => import("@/views/PendientesView.vue"), meta: { requiresAuth: true } },
     { path: "/gerente",          name: "DashboardGerente",    component: () => import("@/views/DashboardGerenteView.vue"),    meta: { requiresAuth: false } },
     { path: "/gerente/personal",  name: "GestionPersonal",     component: () => import("@/views/GestionPersonalView.vue"),     meta: { requiresAuth: false } },
+    // ── Rol Cliente: compras en línea ──────────────────────────
+    { path: "/cliente",              name: "ClienteInicio",  component: () => import("@/views/Cliente.vue"),                       meta: { requiresCliente: true } },
+    { path: "/cliente/tienda/:medio", name: "ClienteTienda",  component: () => import("@/views/cliente/ClienteTiendaView.vue"),   meta: { requiresCliente: true } },
+    { path: "/cliente/carrito",      name: "ClienteCarrito", component: () => import("@/views/cliente/ClienteCarritoView.vue"),  meta: { requiresCliente: true } },
+    { path: "/cliente/compras",      name: "ClienteCompras", component: () => import("@/views/cliente/ClienteComprasView.vue"),  meta: { requiresCliente: true } },
     { path: "/gerente/registros", name: "RegistrosGerente",   component: () => import("@/views/RegistrosGerenteView.vue"),     meta: { requiresAuth: false } },
   ],
 })
 
 // Guard de autenticación — activo solo cuando Supabase está configurado
 router.beforeEach(async (to) => {
+  // Rol Cliente: solo puede ver sus pantallas
+  const auth = useAuthStore()
+  if (to.meta.requiresCliente) return auth.esCliente ? true : { name: "Login" }
+  if (auth.esCliente) return { name: "ClienteInicio" }
+
   if (!supabaseConfigured) return
 
   let autenticado = false

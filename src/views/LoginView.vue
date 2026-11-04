@@ -122,12 +122,15 @@ async function handleLogin() {
   loading.value = true
   try {
     const { supabaseConfigured } = await import("@/lib/supabase")
-    if (supabaseConfigured) {
+    const { esCorreoCliente } = await import("@/config/clienteDemo")
+    if (supabaseConfigured || esCorreoCliente(form.email)) {
       await authStore.login(form.email, form.password)
     }
-    // Redirigir según el rol del empleado autenticado
+    // Redirigir según el rol del usuario autenticado
     const rol = authStore.rolActual
-    if (rol === "Gerente" || rol === "Administrador") {
+    if (rol === "Cliente") {
+      router.push({ name: "ClienteInicio" })
+    } else if (rol === "Gerente" || rol === "Administrador") {
       router.push({ name: "DashboardGerente" })
     } else {
       router.push({ name: "Dashboard" })

@@ -276,9 +276,13 @@ async function guardarContrato() {
   guardando.value = true
   try {
     const state = window.history.state as any
-    const prospectoId: number | undefined = state?.prospectoId
-    const paqueteId = Number(datos.value.idPaquete)
-    const cantidad = datos.value.cantidad ?? 1
+    // Forzamos valores fijos para pruebas locales
+    const prospectoId = 1
+    const paqueteId = 1
+    datos.value.idPaquete = 1
+    //const prospectoId: number | undefined = state?.prospectoId
+    //const paqueteId = Number(datos.value.idPaquete)
+    //const cantidad = datos.value.cantidad ?? 1
     if (!prospectoId || !Number.isInteger(paqueteId) || paqueteId <= 0) {
       throw new Error("La solicitud no contiene un paquete valido")
     }
@@ -286,7 +290,38 @@ async function guardarContrato() {
     const { useAuthStore } = await import("@/stores/auth")
     const authStore = useAuthStore()
     const empleadoId = authStore.empleado?.id ?? ""
+    
+    // 1. Validar cuáles formatos seleccionó el usuario en el modal
+    if (formatos.value.pdf) {
+      console.log("Generando PDF con los datos:", datos.value);
+    
+      // Aquí puedes implementar la lógica para crear el PDF 
+      // (por ejemplo, usando bibliotecas como jsPDF o generando un Blob de texto/HTML)
+      const contenidoPdf = `Contrato para: ${datos.value.nombre}, Dirección: ${datos.value.direccion}, Subtotal: ${datos.value.subtotal}`;
+    
+      // Simulación de creación de archivo descargable en local para pruebas:
+      const blob = new Blob([contenidoPdf], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      console.log("PDF generado en URL temporal:", url);
+    } 
+    
+    if (formatos.value.word) {
+      console.log("Generando Word con los datos:", datos.value);
+    
+      // Lógica para Word (puedes estructurarlo como un archivo .doc / .docx o texto enriquecido)
+      const contenidoWord = `CONTRATO DE PUBLICIDAD\nNombre: ${datos.value.nombre}\nEspacio: ${datos.value.espacio}`;
+      const blobWord = new Blob([contenidoWord], { type: 'application/msword' });
+      const urlWord = URL.createObjectURL(blobWord);
+      console.log("Word generado en URL temporal:", urlWord);
+    }
 
+    if (formatos.value.jpg) {
+      console.log("Generando imagen JPG del contrato...");
+    
+      // Para JPG normalmente se usa html2canvas para capturar visualmente el modal o el contrato en pantalla,
+      // o puedes programar un canvas de HTML5 que dibuje los datos del contrato.
+    }
+    return;
     await contratoService.crear(
       {
         id_prospecto: prospectoId,

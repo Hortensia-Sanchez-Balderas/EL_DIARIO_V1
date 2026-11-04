@@ -1,3 +1,4 @@
+
 import { defineStore } from "pinia"
 import { ref, computed } from "vue"
 import { supabaseConfigured } from "@/lib/supabase"
@@ -18,34 +19,41 @@ function guardarCliente(c: ClienteSesion | null) {
 export const useAuthStore = defineStore("auth", () => {
   const session = ref<{ user: { id: string } } | null>(null)
   const empleado = ref<Empleado | null>(null)
-  const cliente = ref<ClienteSesion | null>(leerCliente())
 
-  const esCliente = computed(() => !!cliente.value)
-  const isAuthenticated = computed(() => !!session.value || esCliente.value)
-  const rolActual = computed<Rol | "Cliente" | null>(() =>
-    cliente.value ? "Cliente" : (empleado.value?.rol ?? null),
-  )
+  const isAuthenticated = computed(() => !!session.value)
+  const rolActual = computed(() => empleado.value?.rol ?? null)
 
   async function initSession() {
-    if (!supabaseConfigured) return
+    if (!supabaseConfigured || inicializada) return
+
+    inicializada = true
+
     try {
-      const timeout = new Promise<null>((r) => setTimeout(() => r(null), 5000))
-      const resultado = await Promise.race([authService.getSession(), timeout])
-      const s = resultado as Awaited<ReturnType<typeof authService.getSession>> | null
-      session.value = s
-      if (s?.user) {
-        try { empleado.value = await authService.getEmpleado(s.user.id) } catch {}
-      }
-      authService.onAuthStateChange(async (_, s) => {
-        session.value = s
-        if (s?.user) {
-          try { empleado.value = await authService.getEmpleado(s.user.id) } catch { empleado.value = null }
-        } else {
-          empleado.value = null
+      const respuesta = authService.onAuthStateChange(
+        (_evento, nuevaSesion) => {
+          actualizarSesion(nuevaSesion)
         }
-      })
-    } catch (e) {
-      console.warn("[EL DIARIO] initSession falló:", e)
+      )
+
+      suscripcionAuth =
+        respuesta.data.subscription
+
+      // La suscripción puede emitir un cambio mientras se consulta
+      // la sesión actual. No dejamos que esta consulta la sobrescriba.
+      const cargaInicial = cargaEmpleadoId
+      const sesionActual = await authService.getSession()
+
+      if (cargaEmpleadoId !== cargaInicial) return
+
+      actualizarSesion(sesionActual)
+    } catch (error) {
+      inicializada = false
+      limpiarEstado()
+
+      console.error(
+        "[EL DIARIO] No se pudo inicializar la sesión:",
+        error
+      )
     }
   }
 
@@ -58,25 +66,51 @@ export const useAuthStore = defineStore("auth", () => {
       return
     }
     const data = await authService.login({ email, password })
+
+    if (!data.session || !data.user) {
+      limpiarEstado()
+      throw new Error("No se recibió una sesión válida.")
+    }
+
+    // El listener también recibe este cambio de autenticación.
+    // Actualizamos el estado de forma inmediata para evitar
+    // mostrar los datos del usuario anterior.
+    const cargaId = ++cargaEmpleadoId
+
     session.value = data.session
-    if (data.user) {
-      empleado.value = await authService.getEmpleado(data.user.id)
+    empleado.value = null
+
+    try {
+      const empleadoCargado = await authService.getEmpleado(
+        data.user.id
+      )
+
+      if (
+        cargaId === cargaEmpleadoId &&
+        session.value?.user?.id === data.user.id
+      ) {
+        empleado.value = empleadoCargado
+      }
+    } catch (error) {
+      if (
+        cargaId === cargaEmpleadoId &&
+        session.value?.user?.id === data.user.id
+      ) {
+        empleado.value = null
+      }
+
+      throw error
     }
   }
 
   async function logout() {
-    if (cliente.value) {
-      cliente.value = null
-      guardarCliente(null)
-      return
-    }
     await authService.logout()
     session.value = null
     empleado.value = null
   }
 
   // Compatibilidad mientras no hay Supabase configurado
-  function clearSession() { session.value = null; empleado.value = null; cliente.value = null; guardarCliente(null) }
+  function clearSession() { session.value = null; empleado.value = null }
 
-  return { session, empleado, cliente, esCliente, isAuthenticated, rolActual, initSession, login, logout, clearSession }
+  return { session, empleado, isAuthenticated, rolActual, initSession, login, logout, clearSession }
 })

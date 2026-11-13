@@ -1,6 +1,7 @@
 
 import { defineStore } from "pinia"
 import { ref, computed } from "vue"
+import type { Session } from "@supabase/supabase-js"
 import { supabaseConfigured } from "@/lib/supabase"
 import { authService } from "@/services/authService"
 import type { Empleado, Rol } from "@/types"
@@ -19,9 +20,62 @@ function guardarCliente(c: ClienteSesion | null) {
 export const useAuthStore = defineStore("auth", () => {
   const session = ref<{ user: { id: string } } | null>(null)
   const empleado = ref<Empleado | null>(null)
+  const cliente = ref<ClienteSesion | null>(leerCliente())
+  const esCliente = computed(() => cliente.value !== null)
+  let inicializada = false
+  let suscripcionAuth: { unsubscribe: () => void } | null = null
+  let cargaEmpleadoId = 0
+  let cargaActual: { usuarioId: string; promesa: Promise<void> } | null = null
 
-  const isAuthenticated = computed(() => !!session.value)
-  const rolActual = computed(() => empleado.value?.rol ?? null)
+  const isAuthenticated = computed(() => !!session.value || esCliente.value)
+  const rolActual = computed<Rol | "Cliente" | null>(() => esCliente.value ? "Cliente" : empleado.value?.rol ?? null)
+
+  function limpiarEstado() {
+    cargaEmpleadoId++
+    cargaActual = null
+    session.value = null
+    empleado.value = null
+    cliente.value = null
+    guardarCliente(null)
+  }
+
+  function actualizarSesion(nuevaSesion: Session | null): Promise<void> {
+    if (!nuevaSesion) {
+      // Un evento inicial sin sesión de Supabase no debe borrar la sesión local del cliente.
+      cargaEmpleadoId++
+      cargaActual = null
+      session.value = null
+      empleado.value = null
+      return Promise.resolve()
+    }
+    const usuarioId = nuevaSesion.user.id
+    if (session.value?.user.id === usuarioId && cargaActual?.usuarioId === usuarioId) {
+      session.value = nuevaSesion
+      return cargaActual.promesa
+    }
+    if (session.value?.user.id === usuarioId && empleado.value) {
+      session.value = nuevaSesion
+      return Promise.resolve()
+    }
+    const cargaId = ++cargaEmpleadoId
+    session.value = nuevaSesion
+    empleado.value = null
+    // La consulta ocurre después del callback de Supabase para evitar bloquear Auth.
+    const promesa = new Promise<void>((resolve, reject) => {
+      setTimeout(() => {
+        authService.getEmpleado(usuarioId).then((resultado) => {
+          if (cargaId === cargaEmpleadoId && session.value?.user.id === usuarioId) empleado.value = resultado
+          resolve()
+        }).catch((error) => {
+          if (cargaId === cargaEmpleadoId) empleado.value = null
+          reject(error)
+        })
+      }, 0)
+    })
+    cargaActual = { usuarioId, promesa }
+    void promesa.then(() => { if (cargaActual?.promesa === promesa) cargaActual = null }, () => { if (cargaActual?.promesa === promesa) cargaActual = null })
+    return promesa
+  }
 
   async function initSession() {
     if (!supabaseConfigured || inicializada) return
@@ -30,8 +84,8 @@ export const useAuthStore = defineStore("auth", () => {
 
     try {
       const respuesta = authService.onAuthStateChange(
-        (_evento, nuevaSesion) => {
-          actualizarSesion(nuevaSesion)
+        async (_evento, nuevaSesion) => {
+          void actualizarSesion(nuevaSesion).catch((error) => console.error("[EL DIARIO] No se pudo cargar el empleado:", error))
         }
       )
 
@@ -45,9 +99,11 @@ export const useAuthStore = defineStore("auth", () => {
 
       if (cargaEmpleadoId !== cargaInicial) return
 
-      actualizarSesion(sesionActual)
+      await actualizarSesion(sesionActual)
     } catch (error) {
       inicializada = false
+      suscripcionAuth?.unsubscribe()
+      suscripcionAuth = null
       limpiarEstado()
 
       console.error(
@@ -72,45 +128,18 @@ export const useAuthStore = defineStore("auth", () => {
       throw new Error("No se recibió una sesión válida.")
     }
 
-    // El listener también recibe este cambio de autenticación.
-    // Actualizamos el estado de forma inmediata para evitar
-    // mostrar los datos del usuario anterior.
-    const cargaId = ++cargaEmpleadoId
-
-    session.value = data.session
-    empleado.value = null
-
-    try {
-      const empleadoCargado = await authService.getEmpleado(
-        data.user.id
-      )
-
-      if (
-        cargaId === cargaEmpleadoId &&
-        session.value?.user?.id === data.user.id
-      ) {
-        empleado.value = empleadoCargado
-      }
-    } catch (error) {
-      if (
-        cargaId === cargaEmpleadoId &&
-        session.value?.user?.id === data.user.id
-      ) {
-        empleado.value = null
-      }
-
-      throw error
-    }
+    cliente.value = null
+    guardarCliente(null)
+    await actualizarSesion(data.session)
   }
 
   async function logout() {
-    await authService.logout()
-    session.value = null
-    empleado.value = null
+    if (!esCliente.value) await authService.logout()
+    limpiarEstado()
   }
 
   // Compatibilidad mientras no hay Supabase configurado
-  function clearSession() { session.value = null; empleado.value = null }
+  function clearSession() { limpiarEstado() }
 
-  return { session, empleado, isAuthenticated, rolActual, initSession, login, logout, clearSession }
+  return { session, empleado, cliente, esCliente, isAuthenticated, rolActual, initSession, login, logout, clearSession }
 })

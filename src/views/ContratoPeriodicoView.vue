@@ -13,7 +13,7 @@
 
     <!-- ── CUERPO ──────────────────────────────────────────── -->
     <div class="cp-body">
-      <div class="cp-hoja">
+      <div ref="hojaRef" class="cp-hoja">
 
         <!-- Fila 1: Nombre del anunciante -->
         <div class="cp-fila">
@@ -197,6 +197,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
+import { exportarContrato, type DatosExport, type FormatoExport } from "@/composables/useExportarContrato"
 
 const router = useRouter()
 const base = import.meta.env.BASE_URL
@@ -270,48 +271,106 @@ function cerrarModal() {
   modalVisible.value = false
 }
 
+const hojaRef = ref<HTMLElement | null>(null)
 const guardando = ref(false)
+const contratoCreadoId = ref<number | null>(null)
+
+function datosParaExportar(): DatosExport {
+  const v = datos.value
+  return {
+    titulo: "Contrato de publicidad • Periódico",
+    campos: [
+      { etiqueta: "Nombre del anunciante", valor: v.nombre },
+      { etiqueta: "Dirección", valor: v.direccion },
+      { etiqueta: "Teléfono", valor: v.telefono },
+      { etiqueta: "Espacio", valor: v.espacio },
+      { etiqueta: "Medidas", valor: v.medidas },
+      { etiqueta: "Sección", valor: v.secc },
+      { etiqueta: "Fecha de publicaciones", valor: v.fechaPublicaciones },
+      { etiqueta: "Página", valor: v.pag },
+      { etiqueta: "R.F.C.", valor: v.rfc },
+      { etiqueta: "Costo C.M. x COM", valor: v.costoCM },
+      { etiqueta: "Factura a", valor: v.factura },
+      { etiqueta: "Posición especial", valor: v.posicionEspecial },
+      { etiqueta: "Acepta firma", valor: firma.value || "NO" },
+    ],
+    totales: [
+      { etiqueta: "Sub-Total", valor: `${fmt(v.subtotal)}` },
+      { etiqueta: "I.V.A. (16%)", valor: `${fmt(iva.value)}` },
+      { etiqueta: "TOTAL", valor: `${fmt(total.value)}` },
+    ],
+  }
+}
 
 async function guardarContrato() {
+  const seleccionados: FormatoExport[] = []
+  if (formatos.value.pdf) seleccionados.push("PDF")
+  if (formatos.value.word) seleccionados.push("WORD")
+  if (formatos.value.jpg) seleccionados.push("JPG")
+
+  if (seleccionados.length === 0) {
+    alert("Selecciona al menos un formato.")
+    return
+  }
+
   guardando.value = true
   try {
-    const state = window.history.state as any
-    const prospectoId: number | undefined = state?.prospectoId
-    const paqueteId = Number(datos.value.idPaquete)
-    const cantidad = datos.value.cantidad ?? 1
-    if (!prospectoId || !Number.isInteger(paqueteId) || paqueteId <= 0) {
-      throw new Error("La solicitud no contiene un paquete valido")
-    }
     const { contratoService } = await import("@/services/contratoService")
     const { useAuthStore } = await import("@/stores/auth")
     const authStore = useAuthStore()
     const empleadoId = authStore.empleado?.id ?? ""
 
-    await contratoService.crear(
-      {
-        id_prospecto: prospectoId,
-        id_empleado_responsable: empleadoId,
-        fecha_contrato: new Date().toISOString().slice(0, 10),
-        fecha_inicio_publicacion: null,
-        fecha_fin_publicacion: null,
-        observaciones: datos.value.posicionEspecial || null,
-        sub_total: datos.value.subtotal,
-        iva_monto: iva.value,
-        total: total.value,
-        estado: firma.value === "SI" ? "Firmado" : "Vigente",
-      },
-      [{
-        id_paquete: paqueteId,
-        cantidad,
-        precio_unitario: datos.value.subtotal / cantidad,
-        importe: datos.value.subtotal,
-      }],
-    )
+    if (contratoCreadoId.value === null) {
+      const state = window.history.state as any
+      const prospectoId: number | undefined = state?.prospectoId
+      const paqueteId = Number(datos.value.idPaquete)
+      const cantidad = datos.value.cantidad ?? 1
+      if (!prospectoId || !Number.isInteger(paqueteId) || paqueteId <= 0) {
+        throw new Error("La solicitud no contiene un paquete valido")
+      }
+      const nuevo = await contratoService.crear(
+        {
+          id_prospecto: prospectoId,
+          id_empleado_responsable: empleadoId,
+          fecha_contrato: new Date().toISOString().slice(0, 10),
+          fecha_inicio_publicacion: null,
+          fecha_fin_publicacion: null,
+          observaciones: datos.value.posicionEspecial || null,
+          sub_total: datos.value.subtotal,
+          iva_monto: iva.value,
+          total: total.value,
+          estado: firma.value === "SI" ? "Firmado" : "Vigente",
+        },
+        [{
+          id_paquete: paqueteId,
+          cantidad,
+          precio_unitario: datos.value.subtotal / cantidad,
+          importe: datos.value.subtotal,
+        }],
+      )
+      contratoCreadoId.value = nuevo.id
+    }
+
+    const { errores } = await exportarContrato({
+      idContrato: contratoCreadoId.value!,
+      idEmpleado: empleadoId,
+      formatos: seleccionados,
+      hoja: hojaRef.value,
+      datos: datosParaExportar(),
+      prefijo: "contrato-periodico",
+    })
+    if (errores.length) {
+      alert(`El contrato ya quedó guardado, pero falló la exportación:\n${errores.join("\n")}`)
+      guardando.value = false
+      return
+    }
+
     cerrarModal()
     router.push({ name: "Dashboard" })
   } catch (e) {
     console.error("Error guardando contrato periódico:", e)
-    alert(e instanceof Error ? e.message : "No se pudo guardar el contrato")
+    const msg = e instanceof Error ? e.message : "No se pudo guardar el contrato"
+    alert(contratoCreadoId.value ? `El contrato ya quedó guardado, pero falló la exportación: ${msg}` : msg)
   }
   guardando.value = false
 }

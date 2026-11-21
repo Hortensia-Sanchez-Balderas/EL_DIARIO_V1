@@ -13,7 +13,7 @@
 
     <!-- ── CUERPO ──────────────────────────────────────────── -->
     <div class="crv-body">
-      <div class="crv-hoja">
+      <div ref="hojaRef" class="crv-hoja">
 
         <p class="crv-encabezado">ORDEN DE PUBLICIDAD • RADIO</p>
 
@@ -164,7 +164,7 @@
         </div>
 
         <!-- Botones finales -->
-        <div class="crv-botones">
+        <div class="crv-botones" data-no-export>
           <button class="crv-btn crv-btn-cancelar" @click="regresar">
             <img :src="`${base}assets/7422c.png`" alt="" class="crv-btn-icon" />
             Cancelar
@@ -207,7 +207,7 @@
             </label>
           </div>
           <div class="crv-modal-footer">
-            <button class="crv-btn crv-btn-guardar crv-modal-guardar" @click="confirmarGuardar">
+            <button class="crv-btn crv-btn-guardar crv-modal-guardar" :disabled="guardando" @click="confirmarGuardar">
               <img :src="`${base}assets/43b53.png`" alt="" class="crv-btn-icon" />
               Guardar
             </button>
@@ -222,7 +222,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue"
 import { useRouter } from "vue-router"
-
+import { exportarContrato, type DatosExport, type FormatoExport } from "@/composables/useExportarContrato"
 const router = useRouter()
 const base   = import.meta.env.BASE_URL
 
@@ -280,7 +280,42 @@ function guardar() {
   showModal.value = true
 }
 
+const hojaRef = ref<HTMLElement | null>(null)
 const guardando = ref(false)
+const contratoCreadoId = ref<number | null>(null)
+
+function datosParaExportar(): DatosExport {
+  const v = c.value
+  return {
+    titulo: "Orden de publicidad • Radio",
+    campos: [
+      { etiqueta: "Producto", valor: v.nombreSpot },
+      { etiqueta: "Por orden de", valor: v.cliente },
+      { etiqueta: "Conducto", valor: v.conducto },
+      { etiqueta: "Fecha contrato", valor: v.fechaContrato },
+      { etiqueta: "Tel. Cliente", valor: v.telCliente },
+      { etiqueta: "Factura a", valor: v.facturaA },
+      { etiqueta: "Inicia", valor: v.fechaInicio },
+      { etiqueta: "Termina", valor: v.fechaTermina },
+      { etiqueta: "R.F.C.", valor: v.rfc },
+      { etiqueta: "Domicilio", valor: v.domicilio },
+      { etiqueta: "Programa / Emisora", valor: v.emisora },
+      { etiqueta: "Duración", valor: v.duracion },
+      { etiqueta: "Precio unitario", valor: formatMXN(v.precioUnitario) },
+      { etiqueta: "# de días", valor: String(v.dias) },
+      { etiqueta: "Días de la semana", valor: v.diasSemana.join(", ") },
+      { etiqueta: "# de spots", valor: String(v.cantidad) },
+      { etiqueta: "Importe", valor: formatMXN(v.subtotal) },
+      { etiqueta: "Observaciones", valor: v.observaciones },
+      { etiqueta: "Acepta firma", valor: v.firma ? "SI" : "NO" },
+    ],
+    totales: [
+      { etiqueta: "Sub-Total", valor: formatMXN(v.subtotal) },
+      { etiqueta: "I.V.A. (16%)", valor: formatMXN(iva.value) },
+      { etiqueta: "TOTAL", valor: formatMXN(totalFinal.value) },
+    ],
+  }
+}
 
 async function confirmarGuardar() {
   if (formatos.value.length === 0) {
@@ -289,42 +324,60 @@ async function confirmarGuardar() {
   }
   guardando.value = true
   try {
-    const state = window.history.state as any
-    const prospectoId: number | undefined = state?.prospectoId
-    const paqueteId = Number(c.value.idPaquete)
-    if (!prospectoId || !Number.isInteger(paqueteId) || paqueteId <= 0) {
-      throw new Error("La solicitud no contiene un paquete valido")
-    }
     const { contratoService } = await import("@/services/contratoService")
     const { useAuthStore } = await import("@/stores/auth")
-    const authStore = useAuthStore()
-    const empleadoId = authStore.empleado?.id ?? ""
+    const empleadoId = useAuthStore().empleado?.id ?? ""
 
-    await contratoService.crear(
-      {
-        id_prospecto: prospectoId,
-        id_empleado_responsable: empleadoId,
-        fecha_contrato: c.value.fechaContrato || new Date().toISOString().slice(0, 10),
-        fecha_inicio_publicacion: c.value.fechaInicio || null,
-        fecha_fin_publicacion: c.value.fechaTermina || null,
-        observaciones: c.value.observaciones || null,
-        sub_total: c.value.subtotal,
-        iva_monto: iva.value,
-        total: totalFinal.value,
-        estado: c.value.firma ? "Firmado" : "Vigente",
-      },
-      [{
-        id_paquete: paqueteId,
-        cantidad: c.value.cantidad,
-        precio_unitario: c.value.precioUnitario,
-        importe: c.value.subtotal,
-      }],
-    )
+    if (contratoCreadoId.value === null) {
+      const state = window.history.state as any
+      const prospectoId: number | undefined = state?.prospectoId
+      const paqueteId = Number(c.value.idPaquete)
+      if (!prospectoId || !Number.isInteger(paqueteId) || paqueteId <= 0) {
+        throw new Error("La solicitud no contiene un paquete valido")
+      }
+      const nuevo = await contratoService.crear(
+        {
+          id_prospecto: prospectoId,
+          id_empleado_responsable: empleadoId,
+          fecha_contrato: c.value.fechaContrato || new Date().toISOString().slice(0, 10),
+          fecha_inicio_publicacion: c.value.fechaInicio || null,
+          fecha_fin_publicacion: c.value.fechaTermina || null,
+          observaciones: c.value.observaciones || null,
+          sub_total: c.value.subtotal,
+          iva_monto: iva.value,
+          total: totalFinal.value,
+          estado: c.value.firma ? "Firmado" : "Vigente",
+        },
+        [{
+          id_paquete: paqueteId,
+          cantidad: c.value.cantidad,
+          precio_unitario: c.value.precioUnitario,
+          importe: c.value.subtotal,
+        }],
+      )
+      contratoCreadoId.value = nuevo.id
+    }
+
+    const { errores } = await exportarContrato({
+      idContrato: contratoCreadoId.value!,
+      idEmpleado: empleadoId,
+      formatos: formatos.value as FormatoExport[],
+      hoja: hojaRef.value,
+      datos: datosParaExportar(),
+      prefijo: "contrato-radio",
+    })
+    if (errores.length) {
+      alert(`El contrato ya quedó guardado, pero falló la exportación:\n${errores.join("\n")}`)
+      guardando.value = false
+      return
+    }
+
     showModal.value = false
     router.push({ name: "Dashboard" })
   } catch (e) {
     console.error("Error guardando contrato radio:", e)
-    alert(e instanceof Error ? e.message : "No se pudo guardar el contrato")
+    const msg = e instanceof Error ? e.message : "No se pudo guardar el contrato"
+    alert(contratoCreadoId.value ? `El contrato ya quedó guardado, pero falló la exportación: ${msg}` : msg)
   }
   guardando.value = false
 }

@@ -672,13 +672,82 @@ function cancelarEdicion() {
 }
 
 /* Conserva la navegación hacia la solicitud */
-function seleccionar(tarifa: TarifaRadio) {
+async function asegurarIdPaquete(tarifa: TarifaRadio): Promise<number | undefined> {
+  if (tarifa.id !== undefined) return tarifa.id
+  try {
+    const meta = nombreServicioMap[servicioId.value]
+    const nombreSrv = meta?.label ?? servicio.value.label
+    let srvId = idServicioRadio.value
+
+    if (srvId === null) {
+      const { data: srvExistente } = await supabase
+        .from("productos_servicios")
+        .select("id")
+        .eq("medio", "Radio")
+        .eq("nombre_servicio", nombreSrv)
+        .maybeSingle()
+
+      if (srvExistente?.id != null) {
+        srvId = Number(srvExistente.id)
+      } else {
+        const { data: srvCreado } = await supabase
+          .from("productos_servicios")
+          .insert({ medio: "Radio", nombre_servicio: nombreSrv })
+          .select("id")
+          .single()
+        if (srvCreado?.id != null) srvId = Number(srvCreado.id)
+      }
+      idServicioRadio.value = srvId
+    }
+
+    if (srvId === null) return undefined
+
+    const precioNum = obtenerPrecioNumerico(tarifa.precio)
+    const desc = tarifa.duracion.trim() || nombreSrv
+
+    const { data: paqExistente } = await supabase
+      .from("paquetes_tarifas")
+      .select("id")
+      .eq("id_servicio", srvId)
+      .eq("medidas_ejemplos", desc)
+      .maybeSingle()
+
+    if (paqExistente?.id != null) {
+      tarifa.id = Number(paqExistente.id)
+      return tarifa.id
+    }
+
+    const { data: paqCreado } = await supabase
+      .from("paquetes_tarifas")
+      .insert({
+        id_servicio: srvId,
+        pln: crearClavePaquete(),
+        tipo_servicio: nombreSrv,
+        descripcion: desc,
+        medidas_ejemplos: desc,
+        tarifa_sin_iva: precioNum,
+      })
+      .select("id")
+      .single()
+
+    if (paqCreado?.id != null) {
+      tarifa.id = Number(paqCreado.id)
+      return tarifa.id
+    }
+  } catch (err) {
+    console.error("No se pudo resolver idPaquete de radio:", err)
+  }
+  return undefined
+}
+
+async function seleccionar(tarifa: TarifaRadio) {
+  const idPaquete = await asegurarIdPaquete(tarifa)
   router.push({
     name: "NuevaSolicitudRadio",
     state: {
       radioTarifa: JSON.stringify({
         servicio: servicio.value.label,
-        idPaquete: tarifa.id,
+        idPaquete,
         duracion: tarifa.duracion,
         precio: tarifa.precio.startsWith("$")
           ? tarifa.precio

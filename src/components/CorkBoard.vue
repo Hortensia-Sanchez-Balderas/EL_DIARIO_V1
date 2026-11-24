@@ -11,7 +11,7 @@
             <div class="postit-body">
               <p class="postit-label">{{ stat.label }}</p>
               <p class="postit-value">
-                {{ stat.loading ? "…" : stat.value !== undefined ? String(stat.value).padStart(2, "0") : "--" }}
+                {{ stat.loading ? "…" : stat.value !== undefined ? formatValue(stat.value) : "--" }}
               </p>
             </div>
           </div>
@@ -31,19 +31,25 @@ defineProps<{
     loading?: boolean
   }>
 }>()
+
+function formatValue(value: number): string {
+  if (Number.isInteger(value)) return String(value).padStart(2, "0")
+  return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(value)
+}
 </script>
 
 <style scoped>
-.dash-registros-section { flex-shrink: 0; }
+.dash-registros-section { flex-shrink: 0; min-width: 0; }
 
 .cork-board {
   background: #615d5d;
   border: 3px solid #1e1e1e;
   border-radius: 7px;
   box-shadow: 10px 0 10px rgba(0, 0, 0, 0.25);
-  height: 270px;
+  min-height: 270px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .registros-banner {
@@ -68,16 +74,18 @@ defineProps<{
 
 .postits-row {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 22px;
-  padding: 16px 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  align-content: center;
+  align-items: stretch;
+  gap: 14px;
+  padding: 18px;
+  min-width: 0;
 }
 
 .postit-wrapper {
-  width: 178px;
-  height: 203px;
+  min-width: 0;
+  min-height: 180px;
   background: #f8f4e3;
   border-bottom-right-radius: 15px;
   border-bottom-left-radius: 15px;
@@ -85,18 +93,20 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  padding: 8px 0;
+  box-sizing: border-box;
 }
 
 .postit-card {
   position: relative;
-  width: 122px;
-  height: 132px;
+  width: calc(100% - 20px);
+  min-height: 132px;
   background: #f6e782;
   border: 1px solid #d6c24a;
   box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .postit-tab {
@@ -113,6 +123,7 @@ defineProps<{
 
 .postit-body {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -129,33 +140,37 @@ defineProps<{
   text-align: center;
   color: #615d5d;
   white-space: pre-line;
+  overflow-wrap: anywhere;
+  max-width: 100%;
   margin: 0;
 }
 
 .postit-value {
   font-family: "Baloo Paaji:Regular", "Baloo Paaji 2", sans-serif;
-  font-size: 36px;
+  font-size: 30px;
   font-weight: 400;
-  line-height: 1;
+  line-height: 1.05;
   text-align: center;
   color: #615d5d;
   margin: 0;
   padding-top: 4px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 1279px) {
-  .cork-board     { height: auto; }
-  .postits-row    { flex-wrap: wrap; padding: 16px; }
-  .postit-wrapper { width: 150px; height: 172px; }
-  .postit-card    { width: 104px; height: 112px; }
-  .postit-value   { font-size: 30px; }
+  .cork-board     { min-height: 0; }
+  .postits-row    { padding: 16px; }
+  .postit-wrapper { min-height: 160px; }
+  .postit-card    { min-height: 116px; }
   .postit-label   { font-size: 14px; }
 }
 
 @media (max-width: 640px) {
-  .postits-row    { gap: 10px; }
-  .postit-wrapper { width: 120px; height: 145px; }
-  .postit-card    { width: 90px; height: 98px; }
+  .postits-row    { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }
+  .postit-wrapper { min-height: 138px; }
+  .postit-card    { width: calc(100% - 14px); min-height: 98px; }
   .postit-value   { font-size: 26px; }
   .postit-label   { font-size: 12px; }
 }

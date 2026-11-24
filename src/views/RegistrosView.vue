@@ -20,7 +20,7 @@
           <div class="kpi-yellow-strip"></div>
           <div class="kpi-body">
             <span class="kpi-label">{{ kpi.label1 }}<br />{{ kpi.label2 }}</span>
-            <span class="kpi-count">{{ String(kpi.valor).padStart(2, '0') }}</span>
+            <span class="kpi-count">{{ formatKpi(kpi.valor) }}</span>
           </div>
         </div>
       </div>
@@ -238,6 +238,11 @@ function formatMXN(n: number) {
   return '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function formatKpi(value: number) {
+  if (Number.isInteger(value)) return String(value).padStart(2, '0')
+  return value.toLocaleString('es-MX', { maximumFractionDigits: 2 })
+}
+
 function reiniciar() {
   filtroAplicado.value = false
   rangoLabel.value = ''
@@ -407,19 +412,24 @@ function aplicarFiltro() {
 .kpi-row {
   display: flex;
   justify-content: center;
-  padding: 16px 0 0;
+  padding: 16px 16px 0;
 }
 .kpi-frame {
-  display: flex;
-  gap: 24px;
+  width: 100%;
+  max-width: 1120px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
+  gap: 14px;
   background: #615d5d;
   border: 3px solid #1e1e1e;
   border-radius: 7px;
   box-shadow: 10px 0 10px rgba(0,0,0,0.25);
-  padding: 8px 32px 20px;
+  padding: 10px 18px 18px;
+  box-sizing: border-box;
 }
 .kpi-card {
-  width: 100px;
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -434,19 +444,24 @@ function aplicarFiltro() {
   z-index: 1;
 }
 .kpi-yellow-strip {
-  width: 100px;
+  width: 100%;
+  max-width: 170px;
   height: 24px;
   background: #f7e05e;
 }
 .kpi-body {
-  width: 100px;
+  width: 100%;
+  max-width: 170px;
+  min-height: 100px;
   background: #f6e782;
   box-shadow: 0 4px 4px rgba(0,0,0,0.25);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 4px 4px 8px;
   flex: 1;
+  box-sizing: border-box;
 }
 .kpi-label {
   font-size: 14px;
@@ -454,11 +469,16 @@ function aplicarFiltro() {
   text-align: center;
   line-height: 1.3;
   margin-bottom: 4px;
+  overflow-wrap: anywhere;
 }
 .kpi-count {
-  font-size: 36px;
+  max-width: 100%;
+  font-size: 30px;
   color: #615d5d;
-  line-height: 1;
+  line-height: 1.05;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 /* ── Clipboard area ──────────────────────────────────────────────────── */

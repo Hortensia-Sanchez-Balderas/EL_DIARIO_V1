@@ -1,169 +1,72 @@
 <template>
   <div class="rg-viewport">
-    <div class="rg-canvas">
-
-      <!-- 1. Background marrón -->
-      <div style="position:absolute;left:0;top:0;width:1280px;height:720px;background:#3a2422;" />
-      <!-- Footer bar -->
-      <div style="position:absolute;left:0;top:670px;width:1280px;height:50px;background:#f8f4e3;" />
-
-      <!-- 2. Tablero gris (fondo de los post-its) -->
-      <div style="position:absolute;left:100px;top:80px;width:1080px;height:270px;background:#615d5d;border:3px solid #1e1e1e;border-radius:7px;box-shadow:10px 0 10px rgba(0,0,0,0.25);" />
-
-      <!-- 3. Tabs de respaldo (f8f4e3) — DEBEN ir ANTES de la barra amarilla -->
-      <div style="position:absolute;left:133px;top:90px;width:178px;height:233px;background:#f8f4e3;border-radius:0 0 15px 15px;" />
-      <div style="position:absolute;left:342px;top:90px;width:178px;height:233px;background:#f8f4e3;border-radius:0 0 15px 15px;" />
-      <div style="position:absolute;left:551px;top:90px;width:178px;height:233px;background:#f8f4e3;border-radius:0 0 15px 15px;" />
-      <div style="position:absolute;left:760px;top:90px;width:178px;height:233px;background:#f8f4e3;border-radius:0 0 15px 15px;" />
-      <div style="position:absolute;left:969px;top:90px;width:178px;height:233px;background:#f8f4e3;border-radius:0 0 15px 15px;" />
+    <div class="rg-canvas" :style="{ height: `${altoCanvas}px` }">
+      <div class="rg-footer" :style="{ top: `${altoCanvas - 50}px` }" />
 
       <!-- 4. Header verde -->
       <div style="position:absolute;left:0;top:0;width:1280px;height:100px;background:#008a52;" />
 
       <!-- 5. Título de página -->
-      <p style="position:absolute;left:calc(50% - 174px);top:31px;font-family:'Lilita One:Regular',serif;font-size:40px;color:white;white-space:nowrap;margin:0;">
+      <p style="position:absolute;left:50%;top:31px;transform:translateX(-50%);font-family:'Lilita One:Regular',serif;font-size:40px;color:white;white-space:nowrap;margin:0;">
         Monitoreo de Actividad
-      </p>
-
-      <!-- 6. Barra amarilla "Registros generales de la semana" -->
-      <div style="position:absolute;left:160px;top:100px;width:960px;height:40px;background:#f7e05e;border:1px solid #c8c135;border-radius:0 0 15px 15px;" />
-      <p style="position:absolute;left:640px;top:120px;transform:translateX(-50%,-50%);font-family:'Baloo Paaji:Regular',sans-serif;font-size:20px;color:#615d5d;white-space:nowrap;text-align:center;margin:0;">
-        Registros generales de la semana
       </p>
 
       <!-- 7. Logo -->
       <img :src="`${base}Logo.png`" alt="El Diario de Coahuila"
            style="position:absolute;left:20px;top:18px;height:64px;object-fit:contain;" />
 
-      <!-- 8. Post-it cards — orden: body → yellow top → white tape → texts -->
-      <!-- Card 1: Prospectos Registrados (left=161) -->
-      <div style="position:absolute;left:161px;top:145.66px;width:122px;height:132.342px;background:#f6e782;box-shadow:0 4px 4px rgba(0,0,0,0.25);" />
-      <div style="position:absolute;left:161px;top:145.66px;width:122px;height:29.684px;background:#f7e05e;" />
-      <div style="position:absolute;left:185px;top:138px;width:74.42px;height:16.079px;background:rgba(255,255,255,0.7);box-shadow:0 4px 4px rgba(0,0,0,0.25);" />
-      <div style="position:absolute;left:221.39px;top:176.58px;transform:translateX(-50%);width:108.58px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;line-height:20px;">
-        <p style="margin:0;">Prospectos</p><p style="margin:0;">Registrados</p>
-      </div>
-      <div style="position:absolute;left:221.39px;top:252.64px;transform:translate(-50%,-50%);width:59.78px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:36px;color:#615d5d;">
-        {{ totales.prospectos !== undefined ? pad(totales.prospectos) : "--" }}
+      <div class="rg-corkboard">
+        <CorkBoard banner-text="Registros generales de la semana" :stats="statsParaTablero" />
       </div>
 
-      <!-- Card 2: Contratos Firmados (left=370) -->
-      <div style="position:absolute;left:370px;top:145.66px;width:122px;height:132.342px;background:#f6e782;box-shadow:0 4px 4px rgba(0,0,0,0.25);" />
-      <div style="position:absolute;left:370px;top:145.66px;width:122px;height:29.684px;background:#f7e05e;" />
-      <div style="position:absolute;left:394px;top:138px;width:74.42px;height:16.079px;background:rgba(255,255,255,0.7);box-shadow:0 4px 4px rgba(0,0,0,0.25);" />
-      <div style="position:absolute;left:430.39px;top:176.58px;transform:translateX(-50%);width:108.58px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;line-height:20px;">
-        <p style="margin:0;">Contratos</p><p style="margin:0;">Firmados</p>
-      </div>
-      <div style="position:absolute;left:430.39px;top:252.64px;transform:translate(-50%,-50%);width:59.78px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:36px;color:#615d5d;">
-        {{ totales.contratos !== undefined ? pad(totales.contratos) : "--" }}
-      </div>
+      <section class="rg-history-panel">
+        <div class="rg-history-content">
+          <div class="rg-history-toolbar">
+            <h2>{{ filtroActivo ? rangoLabel : mesLabel }}</h2>
+            <button v-if="!filtroActivo" class="rg-filter-button" @click="abrirFiltro">
+              <img :src="`${base}assets/e1814.png`" alt="" />
+              Filtrar
+            </button>
+            <button v-else class="rg-filter-button" @click="reiniciarFiltro">
+              <img :src="`${base}assets/46558.png`" alt="" />
+              Reiniciar
+            </button>
+          </div>
 
-      <!-- Card 3: Paquetes de Radio (left=579) -->
-      <div style="position:absolute;left:579px;top:145.66px;width:122px;height:132.342px;background:#f6e782;box-shadow:0 4px 4px rgba(0,0,0,0.25);" />
-      <div style="position:absolute;left:579px;top:145.66px;width:122px;height:29.684px;background:#f7e05e;" />
-      <div style="position:absolute;left:603px;top:138px;width:74.42px;height:16.079px;background:rgba(255,255,255,0.7);box-shadow:0 4px 4px rgba(0,0,0,0.25);" />
-      <div style="position:absolute;left:639.39px;top:176.58px;transform:translateX(-50%);width:108.58px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;line-height:20px;">
-        <p style="margin:0;">Paquetes</p><p style="margin:0;">de Radio</p>
-      </div>
-      <div style="position:absolute;left:639.39px;top:252.64px;transform:translate(-50%,-50%);width:59.78px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:36px;color:#615d5d;">
-        {{ totales.radio !== undefined ? pad(totales.radio) : "--" }}
-      </div>
-
-      <!-- Card 4: Paquetes de Periódico (left=788) -->
-      <div style="position:absolute;left:788px;top:145.66px;width:122px;height:132.342px;background:#f6e782;box-shadow:0 4px 4px rgba(0,0,0,0.25);" />
-      <div style="position:absolute;left:788px;top:145.66px;width:122px;height:29.684px;background:#f7e05e;" />
-      <div style="position:absolute;left:812px;top:138px;width:74.42px;height:16.079px;background:rgba(255,255,255,0.7);box-shadow:0 4px 4px rgba(0,0,0,0.25);" />
-      <div style="position:absolute;left:848.39px;top:176.58px;transform:translateX(-50%);width:108.58px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;line-height:20px;">
-        <p style="margin:0;">Paquetes</p><p style="margin:0;">de Periódico</p>
-      </div>
-      <div style="position:absolute;left:848.39px;top:252.64px;transform:translate(-50%,-50%);width:59.78px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:36px;color:#615d5d;">
-        {{ totales.periodico !== undefined ? pad(totales.periodico) : "--" }}
-      </div>
-
-      <!-- Card 5: Ventas Totales (left=997) -->
-      <div style="position:absolute;left:997px;top:145.66px;width:122px;height:132.342px;background:#f6e782;box-shadow:0 4px 4px rgba(0,0,0,0.25);" />
-      <div style="position:absolute;left:997px;top:145.66px;width:122px;height:29.684px;background:#f7e05e;" />
-      <div style="position:absolute;left:1021px;top:138px;width:74.42px;height:16.079px;background:rgba(255,255,255,0.7);box-shadow:0 4px 4px rgba(0,0,0,0.25);" />
-      <div style="position:absolute;left:1057.39px;top:176.58px;transform:translateX(-50%);width:108.58px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;line-height:20px;">
-        <p style="margin:0;">Ventas</p><p style="margin:0;">Totales</p>
-      </div>
-      <div style="position:absolute;left:1057.39px;top:252.64px;transform:translate(-50%,-50%);width:59.78px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:36px;color:#615d5d;">
-        {{ totales.ventas !== undefined ? pad(totales.ventas) : "--" }}
-      </div>
-
-      <!-- 9. Clipboard (tablero marrón) -->
-      <div style="position:absolute;left:120px;top:341px;width:1039px;height:320px;background:#91634d;border-radius:19px;" />
-      <!-- Papel interior -->
-      <div style="position:absolute;left:178px;top:362px;width:964px;height:280px;background:#f3e9dc;border-radius:5px;" />
-
-      <!-- 10. Título mes / rango de fechas -->
-      <div style="position:absolute;left:calc(50% - 195.5px);top:397.5px;transform:translate(-50%,-50%);width:507px;height:33px;display:flex;align-items:center;justify-content:center;">
-        <span style="font-family:'Lilita One:Regular',serif;font-size:35px;color:#615d5d;white-space:nowrap;">
-          {{ filtroActivo ? rangoLabel : mesLabel }}
-        </span>
-      </div>
-
-      <!-- 11. Botón Filtrar / Reiniciar -->
-      <button v-if="!filtroActivo" @click="abrirFiltro"
-        style="position:absolute;left:934px;top:363px;width:170px;height:60px;background:#008a52;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;overflow:hidden;">
-        <img :src="`${base}assets/e1814.png`" style="width:31px;height:31px;object-fit:cover;flex-shrink:0;" alt="" />
-        <span style="font-family:'Baloo Paaji:Regular',sans-serif;font-size:25px;color:white;">Filtrar</span>
-      </button>
-      <button v-else @click="reiniciarFiltro"
-        style="position:absolute;left:934px;top:363px;width:170px;height:60px;background:#008a52;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;overflow:hidden;">
-        <img :src="`${base}assets/46558.png`" style="width:31px;height:31px;object-fit:cover;flex-shrink:0;" alt="" />
-        <span style="font-family:'Baloo Paaji:Regular',sans-serif;font-size:25px;color:white;">Reiniciar</span>
-      </button>
-
-      <!-- 12. Header fila de tabla (blanca redondeada arriba) -->
-      <div style="position:absolute;left:215px;top:426px;width:889px;height:43px;background:white;border-radius:10px 10px 0 0;" />
-
-      <!-- Textos encabezados columnas -->
-      <div style="position:absolute;left:284px;top:448px;transform:translate(-50%,-50%);width:132px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;">Empleado</div>
-      <div style="position:absolute;left:432.5px;top:447.5px;transform:translate(-50%,-50%);width:129px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;line-height:20px;">Prospectos<br>Registrados</div>
-      <div style="position:absolute;left:581px;top:447.5px;transform:translate(-50%,-50%);width:134px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;line-height:20px;">Contratos<br>Firmados</div>
-      <div style="position:absolute;left:733px;top:447.5px;transform:translate(-50%,-50%);width:134px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;line-height:20px;">Paquetes de<br>Radio</div>
-      <div style="position:absolute;left:882.5px;top:447.5px;transform:translate(-50%,-50%);width:99px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;line-height:20px;">Paquetes de<br>Periódico</div>
-      <div style="position:absolute;left:1034px;top:449px;transform:translate(-50%,-50%);width:134px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;">Ventas Totales</div>
-
-      <!-- 13. Filas de empleados (3 filas fijas por página) -->
-      <template v-for="(emp, ri) in paginaEmpleados" :key="`row-${emp.nombre}`">
-        <!-- Celdas blancas -->
-        <div :style="`position:absolute;left:215px;top:${479+ri*48}px;width:137px;height:38px;background:white;border-radius:2px;`" />
-        <div :style="`position:absolute;left:362px;top:${479+ri*48}px;width:140px;height:38px;background:white;border-radius:2px;`" />
-        <div :style="`position:absolute;left:512px;top:${479+ri*48}px;width:140px;height:38px;background:white;border-radius:2px;`" />
-        <div :style="`position:absolute;left:662px;top:${479+ri*48}px;width:140px;height:38px;background:white;border-radius:2px;`" />
-        <div :style="`position:absolute;left:812px;top:${479+ri*48}px;width:140px;height:38px;background:white;border-radius:2px;`" />
-        <div :style="`position:absolute;left:963px;top:${479+ri*48}px;width:140px;height:38px;background:white;border-radius:2px;`" />
-        <!-- Datos -->
-        <div :style="`position:absolute;left:284px;top:${498+ri*48}px;transform:translate(-50%,-50%);width:144px;text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;`">{{ emp.nombre }}</div>
-        <div :style="`position:absolute;left:433px;top:${499.5+ri*48}px;transform:translate(-50%,-50%);text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;`">{{ emp.prospectos !== undefined ? pad(emp.prospectos) : "--" }}</div>
-        <div :style="`position:absolute;left:581px;top:${499.5+ri*48}px;transform:translate(-50%,-50%);text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;`">{{ emp.contratos !== undefined ? pad(emp.contratos) : "--" }}</div>
-        <div :style="`position:absolute;left:733px;top:${500.5+ri*48}px;transform:translate(-50%,-50%);text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;`">{{ emp.radio !== undefined ? pad(emp.radio) : "--" }}</div>
-        <div :style="`position:absolute;left:883px;top:${500.5+ri*48}px;transform:translate(-50%,-50%);text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;`">{{ emp.periodico !== undefined ? pad(emp.periodico) : "--" }}</div>
-        <div :style="`position:absolute;left:1034px;top:${500.5+ri*48}px;transform:translate(-50%,-50%);text-align:center;font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;color:#615d5d;`">{{ emp.ventas !== undefined ? pad(emp.ventas) : "--" }}</div>
-      </template>
-
-      <!-- 14. Argolla del clipboard (Union SVG) -->
-      <div style="position:absolute;left:129px;top:406px;width:69.001px;height:186.484px;">
-        <img :src="`${base}assets/3e155.svg`" style="width:100%;height:100%;" alt="" />
-      </div>
-
-      <!-- 15. Paginación -->
-      <!-- Flecha izquierda -->
-      <div style="position:absolute;left:599px;top:618px;width:20px;height:20px;cursor:pointer;" @click="pagina = Math.max(1, pagina-1)">
-        <img :src="`${base}assets/10d17.png`" style="width:100%;height:100%;object-fit:contain;" alt="" />
-      </div>
-      <!-- Números -->
-      <div style="position:absolute;left:660px;top:628px;transform:translate(-50%,-50%);font-family:'Baloo Paaji:Regular',sans-serif;font-size:16px;text-align:center;white-space:pre;">
-        <span v-for="p in totalPaginas" :key="p"
-          @click="pagina = p"
-          :style="`cursor:pointer;color:${p===pagina ? 'black' : 'rgba(97,93,93,0.65)'};margin:0 3px;`">{{ p }}</span>
-      </div>
-      <!-- Flecha derecha -->
-      <div style="position:absolute;left:701px;top:618px;width:20px;height:20px;cursor:pointer;transform:rotate(180deg);" @click="pagina = Math.min(totalPaginas, pagina+1)">
-        <img :src="`${base}assets/10d17.png`" style="width:100%;height:100%;object-fit:contain;" alt="" />
-      </div>
+          <div class="rg-table-scroll">
+            <table class="rg-vendor-table">
+              <thead>
+                <tr>
+                  <th>Vendedor</th>
+                  <th>Prospectos<br />Registrados</th>
+                  <th>Contratos<br />Firmados</th>
+                  <th>Paquetes<br />de Radio</th>
+                  <th>Paquetes de<br />Periódico</th>
+                  <th>Ventas<br />Totales</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="cargandoVendedores">
+                  <td colspan="6" class="rg-empty-row">Cargando registros de vendedores...</td>
+                </tr>
+                <tr v-else-if="empleados.length === 0">
+                  <td colspan="6" class="rg-empty-row">No hay vendedores activos para mostrar.</td>
+                </tr>
+                <template v-else>
+                  <tr v-for="emp in empleados" :key="emp.id">
+                    <td class="rg-vendor-name">{{ emp.nombre }}</td>
+                    <td>{{ pad(emp.prospectos) }}</td>
+                    <td>{{ pad(emp.contratos) }}</td>
+                    <td>{{ pad(emp.radio) }}</td>
+                    <td>{{ pad(emp.periodico) }}</td>
+                    <td>{{ pad(emp.ventas) }}</td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
       <!-- 16. Botón Regresar -->
       <button @click="regresar"
@@ -249,6 +152,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
+import CorkBoard from "@/components/CorkBoard.vue"
 
 const router = useRouter()
 const base = import.meta.env.BASE_URL
@@ -257,8 +161,7 @@ function updateScale() {
   const el = document.querySelector(".rg-canvas") as HTMLElement | null
   if (!el) return
   const sx = window.innerWidth / 1280
-  const sy = window.innerHeight / 720
-  el.style.transform = `scale(${sx}, ${sy})`
+  el.style.transform = `scale(${sx}, 1)`
 }
 onMounted(async () => {
   updateScale()
@@ -277,16 +180,30 @@ onMounted(async () => {
       periodico: stats.paquetesPeriodico,
       ventas: stats.ventasTotales,
     }
-    empleados.value = emps
+    const vendedores = emps
       .filter(e => e.rol === "Vendedor")
-      .map(e => ({ nombre: e.nombre }))
+    empleados.value = await Promise.all(vendedores.map(async (empleado) => {
+      const registros = await dashboardService.registrosSemana(empleado.id)
+      return {
+        id: empleado.id,
+        nombre: empleado.nombre,
+        prospectos: registros.prospectos,
+        contratos: registros.contratos,
+        radio: registros.paquetesRadio,
+        periodico: registros.paquetesPeriodico,
+        ventas: registros.ventasTotales,
+      }
+    }))
   } catch (e) {
     console.error("Error cargando registros gerente:", e)
+  } finally {
+    cargandoVendedores.value = false
   }
 })
 onUnmounted(() => { window.removeEventListener("resize", updateScale) })
 
 type Empleado = {
+  id: string
   nombre: string
   prospectos?: number
   contratos?: number
@@ -296,6 +213,7 @@ type Empleado = {
 }
 
 const empleados = ref<Empleado[]>([])
+const cargandoVendedores = ref(true)
 
 type TotalesKey = "prospectos" | "contratos" | "radio" | "periodico" | "ventas"
 const totales = ref<Record<TotalesKey, number | undefined>>({
@@ -303,12 +221,15 @@ const totales = ref<Record<TotalesKey, number | undefined>>({
   radio: undefined, periodico: undefined, ventas: undefined,
 })
 
-const POR_PAGINA = 3
-const pagina = ref(1)
-const totalPaginas = computed(() => Math.max(1, Math.ceil(empleados.value.length / POR_PAGINA)))
-const paginaEmpleados = computed(() =>
-  empleados.value.slice((pagina.value - 1) * POR_PAGINA, pagina.value * POR_PAGINA)
-)
+const statsParaTablero = computed(() => [
+  { id: "prospectos", label: "Prospectos\nRegistrados", value: totales.value.prospectos },
+  { id: "contratos", label: "Contratos\nFirmados", value: totales.value.contratos },
+  { id: "radio", label: "Paquetes\nde Radio", value: totales.value.radio },
+  { id: "periodico", label: "Paquetes\nde Periódico", value: totales.value.periodico },
+  { id: "ventas", label: "Ventas\nTotales", value: totales.value.ventas },
+])
+
+const altoCanvas = computed(() => Math.max(720, 620 + empleados.value.length * 52))
 
 const MESES_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 const now = new Date()
@@ -319,7 +240,8 @@ const rangoLabel = ref("")
 
 function pad(n: number | undefined) {
   if (n === undefined) return "--"
-  return String(n).padStart(2, "0")
+  if (Number.isInteger(n)) return String(n).padStart(2, "0")
+  return n.toLocaleString("es-MX", { maximumFractionDigits: 2 })
 }
 function regresar() { router.push({ name: "DashboardGerente" }) }
 function reiniciarFiltro() { filtroActivo.value = false; rangoLabel.value = "" }
@@ -381,16 +303,138 @@ function aplicarFiltro() {
 .rg-viewport {
   width: 100vw;
   height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
   background: #3a2422;
 }
 .rg-canvas {
+  position: relative;
+  width: 1280px;
+  min-height: 720px;
+  transform-origin: top left;
+  background: #3a2422;
+}
+.rg-footer {
   position: absolute;
-  top: 0;
   left: 0;
   width: 1280px;
-  height: 720px;
-  transform-origin: top left;
+  height: 50px;
+  background: #f8f4e3;
+}
+.rg-corkboard {
+  position: absolute;
+  left: 100px;
+  top: 100px;
+  width: 1080px;
+  height: 240px;
+}
+.rg-corkboard :deep(.cork-board) {
+  height: 240px;
+  min-height: 240px;
+}
+.rg-corkboard :deep(.postits-row) {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 16px;
+}
+.rg-corkboard :deep(.postit-wrapper) {
+  min-height: 150px;
+}
+.rg-corkboard :deep(.postit-card) {
+  min-height: 116px;
+}
+.rg-history-panel {
+  position: absolute;
+  top: 360px;
+  left: 100px;
+  width: 1080px;
+  padding: 18px;
+  box-sizing: border-box;
+  background: #91634d;
+  border-radius: 19px;
+}
+.rg-history-content {
+  padding: 16px 20px 20px;
+  background: #f3e9dc;
+  border-radius: 5px;
+}
+.rg-history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.rg-history-toolbar h2 {
+  min-width: 0;
+  margin: 0;
+  color: #615d5d;
+  font-family: "Lilita One:Regular", serif;
+  font-size: 30px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.rg-filter-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 150px;
+  min-height: 48px;
+  padding: 6px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #008a52;
+  color: #fff;
+  font-family: "Baloo Paaji:Regular", sans-serif;
+  font-size: 20px;
+  cursor: pointer;
+}
+.rg-filter-button img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+.rg-table-scroll {
+  overflow-x: auto;
+}
+.rg-vendor-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 5px;
+  table-layout: fixed;
+  color: #615d5d;
+  font-family: "Baloo Paaji:Regular", sans-serif;
+}
+.rg-vendor-table th {
+  padding: 8px 6px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
+}
+.rg-vendor-table th:first-child { border-radius: 8px 0 0 0; }
+.rg-vendor-table th:last-child { border-radius: 0 8px 0 0; }
+.rg-vendor-table td {
+  padding: 8px 6px;
+  background: #fff;
+  font-size: 15px;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.rg-vendor-table td:first-child { border-radius: 3px 0 0 3px; }
+.rg-vendor-table td:last-child { border-radius: 0 3px 3px 0; }
+.rg-vendor-table .rg-vendor-name {
+  padding-left: 12px;
+  text-align: left;
+  font-weight: 700;
+}
+.rg-vendor-table .rg-empty-row {
+  padding: 18px;
+  text-align: center;
 }
 </style>

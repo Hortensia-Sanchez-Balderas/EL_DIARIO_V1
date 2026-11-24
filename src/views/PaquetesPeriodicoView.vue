@@ -48,8 +48,10 @@
 
 <script setup lang="ts">
 import { useRouter } from "vue-router"
+import { useAuthStore } from "@/stores/auth"
 
 const router = useRouter()
+const authStore = useAuthStore()
 const base = import.meta.env.BASE_URL
 
 const servicios = [
@@ -68,7 +70,10 @@ function seleccionar(servicio: typeof servicios[0]) {
 }
 
 function regresar() {
-  router.push({ name: "Dashboard" })
+  const dashboard = authStore.rolActual === "Gerente" || authStore.rolActual === "Administrador"
+    ? "DashboardGerente"
+    : "Dashboard"
+  router.push({ name: dashboard })
 }
 </script>
 

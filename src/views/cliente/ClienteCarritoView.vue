@@ -86,7 +86,7 @@
           <p v-if="error" class="cc-error" role="alert">{{ error }}</p>
           <button class="cc-pagar" :disabled="procesando" @click="pagar">
             <span v-if="procesando" class="cc-spin" />
-            {{ procesando ? "Procesando pago..." : `Pagar ${formatoMXN(cliente.total)}` }}
+            {{ procesando ? "Guardando pedido..." : `Confirmar pedido ${formatoMXN(cliente.total)}` }}
           </button>
         </aside>
       </div>
@@ -94,7 +94,7 @@
       <!-- Compra confirmada -->
       <div v-else class="cc-ok">
         <div class="cc-ok-check">✓</div>
-        <p class="cc-vacio-titulo">¡Compra realizada!</p>
+        <p class="cc-vacio-titulo">¡Pedido recibido!</p>
         <p class="cc-vacio-txt">
           Folio <strong>{{ pedidoOk.folio }}</strong> · {{ formatoMXN(pedidoOk.total) }}<br />
           Un ejecutivo de El Diario revisará tu material y te contactará al {{ pedidoOk.facturacion.telefono }}.
@@ -117,6 +117,7 @@ import ClienteHeader from "@/components/ClienteHeader.vue"
 import { useClienteStore, type Pedido } from "@/stores/cliente"
 import { useAuthStore } from "@/stores/auth"
 import { formatoMXN } from "@/data/catalogoCliente"
+import { pedidoClienteService } from "@/services/pedidoClienteService"
 
 const router = useRouter()
 const cliente = useClienteStore()
@@ -139,7 +140,6 @@ const pedidoOk = ref<Pedido | null>(null)
 
 function validar() {
   if (!fact.razonSocial) return "Ingresa tu nombre o razón social."
-  if (!/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(fact.rfc)) return "El RFC no es válido (12 o 13 caracteres)."
   if (!/^\d{10}$/.test(fact.telefono)) return "El teléfono debe tener 10 dígitos."
   if (!/^\S+@\S+\.\S+$/.test(fact.correo)) return "Ingresa un correo válido."
   if (cliente.carrito.some((i) => !i.fechaInicio || i.fechaInicio < manana)) return "Revisa las fechas de inicio (a partir de mañana)."
@@ -151,9 +151,24 @@ async function pagar() {
   error.value = validar()
   if (error.value) return
   procesando.value = true
-  await new Promise((r) => setTimeout(r, 1200)) // simula la pasarela
-  pedidoOk.value = cliente.confirmarCompra({ metodoPago: metodo.value, facturacion: { ...fact }, notas: notas.value })
-  procesando.value = false
+  try {
+    const pedido = await pedidoClienteService.crear({
+      nombre: auth.cliente?.nombre ?? fact.razonSocial,
+      email: fact.correo,
+      items: JSON.parse(JSON.stringify(cliente.carrito)),
+      subtotal: cliente.subtotal,
+      iva: cliente.iva,
+      total: cliente.total,
+      metodoPago: metodo.value,
+      facturacion: { ...fact },
+      notas: notas.value,
+    }, auth.cliente?.email ?? fact.correo)
+    pedidoOk.value = cliente.registrarPedido(pedido)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : "No se pudo guardar el pedido. Inténtalo de nuevo."
+  } finally {
+    procesando.value = false
+  }
 }
 </script>
 

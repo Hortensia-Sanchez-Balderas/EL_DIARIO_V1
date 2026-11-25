@@ -8,6 +8,7 @@ export type EstadoProspecto = "Prospecto" | "Cliente" | "Baja"
 export type EstadoContrato = "Firmado" | "Vigente" | "Terminado" | "Cancelado"
 export type TipoEvento = "Llamada" | "Visita" | "Reunion" | "Seguimiento" | "Otro"
 export type Prioridad = "Alta" | "Media" | "Baja"
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 // ── Entidades ──────────────────────────────────────────────────────────────
 
@@ -127,6 +128,23 @@ export interface ActividadLog {
   fecha_hora: string
 }
 
+export interface PedidoClienteRow {
+  id: string
+  folio: string
+  cliente_nombre: string
+  cliente_email: string
+  cliente_token_hash: string
+  items: Json
+  subtotal: number
+  iva: number
+  total: number
+  metodo_pago: string
+  facturacion: Json
+  notas: string
+  estado: "En revisión" | "Pagado" | "Publicado" | "Cancelado"
+  created_at: string
+}
+
 // ── Tipos con joins frecuentes ─────────────────────────────────────────────
 
 export interface ProspectoConEmpleado extends Prospecto {
@@ -204,6 +222,11 @@ export interface Database {
         Insert: Omit<ActividadLog, "id" | "fecha_hora"> & { fecha_hora?: string }
         Update: never
       }
+      pedidos_cliente: {
+        Row: PedidoClienteRow
+        Insert: never
+        Update: never
+      }
     }
     Functions: {
       crear_contrato_con_detalles: {
@@ -212,6 +235,14 @@ export interface Database {
           p_detalles: Omit<ContratoDetalle, "id" | "id_contrato">[]
         }
         Returns: { contrato_id: number }[]
+      }
+      crear_pedido_cliente: {
+        Args: { p_token: string; p_pedido: Json }
+        Returns: Json
+      }
+      listar_mis_pedidos_cliente: {
+        Args: { p_token: string }
+        Returns: Json
       }
     }
   }

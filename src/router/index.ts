@@ -48,6 +48,7 @@ const router = createRouter({
     { path: "/cliente/carrito",      name: "ClienteCarrito", component: () => import("@/views/cliente/ClienteCarritoView.vue"),  meta: { requiresCliente: true } },
     { path: "/cliente/compras",      name: "ClienteCompras", component: () => import("@/views/cliente/ClienteComprasView.vue"),  meta: { requiresCliente: true } },
     { path: "/gerente/registros", name: "RegistrosGerente",   component: () => import("@/views/RegistrosGerenteView.vue"),     meta: { requiresAuth: false } },
+    { path: "/gerente/pedidos", name: "PedidosClienteGerente", component: () => import("@/views/PedidosClienteGerenteView.vue"), meta: { requiresAuth: false } },
   ],
 })
 

@@ -73,6 +73,13 @@
             <span class="modulo-label">Registros</span>
           </button>
 
+          <button class="modulo-btn" style="background:linear-gradient(180deg,#008a52 0%,#00663b 100%);" @click="irPedidos">
+            <div class="modulo-icon-wrap">
+              <CartIcon :size="76" />
+            </div>
+            <span class="modulo-label">Pedidos de clientes</span>
+          </button>
+
           <!-- Salir -->
           <button class="modulo-btn" style="background:linear-gradient(180deg,#da2527 0%,#bf133b 100%);" @click="salir">
             <div class="modulo-icon-wrap">
@@ -96,6 +103,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
 import AppHeader from "@/components/AppHeader.vue"
 import CorkBoard from "@/components/CorkBoard.vue"
+import CartIcon from "@/components/CartIcon.vue"
 import { useAuthStore } from "@/stores/auth"
 
 const router = useRouter()
@@ -174,6 +182,10 @@ async function salir() {
 
 function irRegistros() {
   router.push({ name: "RegistrosGerente" })
+}
+
+function irPedidos() {
+  router.push({ name: "PedidosClienteGerente" })
 }
 
 function irGestion() {

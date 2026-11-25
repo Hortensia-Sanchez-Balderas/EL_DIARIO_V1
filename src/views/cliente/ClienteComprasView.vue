@@ -43,7 +43,7 @@
             </table>
             <div class="cm-pie">
               <div class="cm-fact">
-                <strong>Facturación:</strong> {{ p.facturacion.razonSocial }} · {{ p.facturacion.rfc }}<br />
+                <strong>Facturación:</strong> {{ p.facturacion.razonSocial }}<template v-if="p.facturacion.rfc"> · RFC {{ p.facturacion.rfc }}</template><br />
                 <template v-if="p.notas"><strong>Indicaciones:</strong> {{ p.notas }}</template>
               </div>
               <div class="cm-montos">
@@ -62,15 +62,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue"
+import { onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import ClienteHeader from "@/components/ClienteHeader.vue"
 import { useClienteStore, type Pedido } from "@/stores/cliente"
 import { formatoMXN } from "@/data/catalogoCliente"
+import { pedidoClienteService } from "@/services/pedidoClienteService"
+import { useAuthStore } from "@/stores/auth"
+import { supabaseConfigured } from "@/lib/supabase"
 
 const router = useRouter()
 const cliente = useClienteStore()
+const auth = useAuthStore()
 const abierto = ref<string | null>(cliente.pedidos[0]?.folio ?? null)
+
+onMounted(async () => {
+  if (!supabaseConfigured || !auth.cliente?.email) return
+  try {
+    const pedidos = await pedidoClienteService.listarMios(auth.cliente.email)
+    cliente.reemplazarPedidos(pedidos)
+    abierto.value = pedidos[0]?.folio ?? null
+  } catch (error) {
+    console.error("No se pudo sincronizar el historial de pedidos:", error)
+  }
+})
 
 const fecha = (iso: string) =>
   new Date(iso).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })

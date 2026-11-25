@@ -20,11 +20,7 @@
           <div class="modulo-icon-wrap">
             <img v-if="mod.icon" :src="mod.icon" :alt="mod.label" class="modulo-icon"
                  :style="{ width: mod.iconW + 'px', height: '93px' }" />
-            <svg v-else viewBox="0 0 24 24" width="88" height="88" fill="none" stroke="#fff"
-                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="9" cy="21" r="1.4" /><circle cx="19" cy="21" r="1.4" />
-              <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6" />
-            </svg>
+            <CartIcon v-else :size="88" />
             <span v-if="mod.badge" class="modulo-badge">{{ mod.badge }}</span>
           </div>
           <span class="modulo-label">{{ mod.label }}</span>
@@ -37,16 +33,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
 import { useClienteStore } from "@/stores/cliente"
 import ClienteHeader from "@/components/ClienteHeader.vue"
 import CorkBoard from "@/components/CorkBoard.vue"
+import CartIcon from "@/components/CartIcon.vue"
+import { pedidoClienteService } from "@/services/pedidoClienteService"
+import { supabaseConfigured } from "@/lib/supabase"
 
 const router = useRouter()
 const auth = useAuthStore()
 const cliente = useClienteStore()
+
+onMounted(async () => {
+  if (!supabaseConfigured || !auth.cliente?.email) return
+  try {
+    cliente.reemplazarPedidos(await pedidoClienteService.listarMios(auth.cliente.email))
+  } catch (error) {
+    console.error("No se pudo sincronizar el resumen de compras:", error)
+  }
+})
 
 const menuIcons = import.meta.glob("../imports/Menu/*.png", { eager: true, import: "default" }) as Record<string, string>
 const icon = (name: string) => menuIcons[`../imports/Menu/${name}`] ?? ""

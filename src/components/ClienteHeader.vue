@@ -8,10 +8,7 @@
           aria-label="Ver carrito"
           @click="router.push({ name: 'ClienteCarrito' })"
         >
-          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="21" r="1.4" /><circle cx="19" cy="21" r="1.4" />
-            <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6" />
-          </svg>
+          <CartIcon />
           <span v-if="cliente.totalPiezas" class="ch-badge">{{ cliente.totalPiezas }}</span>
         </button>
 
@@ -40,6 +37,7 @@
 import { ref } from "vue"
 import { useRouter } from "vue-router"
 import AppHeader from "@/components/AppHeader.vue"
+import CartIcon from "@/components/CartIcon.vue"
 import { useAuthStore } from "@/stores/auth"
 import { useClienteStore } from "@/stores/cliente"
 import userIcon from "@/imports/Menu/user.png"

@@ -2,8 +2,7 @@ import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
 import { IVA, type ProductoTienda } from "@/data/catalogoCliente"
 
-// Carrito y pedidos del cliente — solo frontend (localStorage) mientras
-// no existan las tablas de pedidos en la BD.
+// El carrito y la copia local del historial se conservan entre visitas.
 
 export interface ItemCarrito {
   producto: ProductoTienda
@@ -21,6 +20,7 @@ export interface ExtrasImpresa {
 }
 
 export interface Pedido {
+  id?: string
   folio: string
   fecha: string // ISO
   items: ItemCarrito[]
@@ -30,7 +30,7 @@ export interface Pedido {
   metodoPago: string
   facturacion: { razonSocial: string; rfc: string; telefono: string; correo: string }
   notas: string
-  estado: "Pagado" | "En revisión" | "Publicado"
+  estado: "Pagado" | "En revisión" | "Publicado" | "Cancelado"
 }
 
 const KEY_CARRITO = "eldiario.cliente.carrito"
@@ -91,6 +91,16 @@ export const useClienteStore = defineStore("cliente", () => {
 
   function vaciar() { carrito.value = [] }
 
+  function registrarPedido(pedido: Pedido): Pedido {
+    pedidos.value = [pedido, ...pedidos.value.filter((existente) => existente.folio !== pedido.folio)]
+    vaciar()
+    return pedido
+  }
+
+  function reemplazarPedidos(nuevosPedidos: Pedido[]) {
+    pedidos.value = nuevosPedidos
+  }
+
   function confirmarCompra(datos: Pick<Pedido, "metodoPago" | "facturacion" | "notas">): Pedido {
     const pedido: Pedido = {
       folio: "ED-" + Date.now().toString().slice(-8),
@@ -99,13 +109,11 @@ export const useClienteStore = defineStore("cliente", () => {
       subtotal: subtotal.value,
       iva: iva.value,
       total: total.value,
-      estado: datos.metodoPago === "Transferencia" ? "En revisión" : "Pagado",
+      estado: "En revisión",
       ...datos,
     }
-    pedidos.value.unshift(pedido)
-    vaciar()
-    return pedido
+    return registrarPedido(pedido)
   }
 
-  return { carrito, pedidos, totalPiezas, subtotal, iva, total, agregar, quitar, cambiarCantidad, vaciar, confirmarCompra }
+  return { carrito, pedidos, totalPiezas, subtotal, iva, total, agregar, quitar, cambiarCantidad, vaciar, registrarPedido, reemplazarPedidos, confirmarCompra }
 })
